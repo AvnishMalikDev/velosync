@@ -1,0 +1,384 @@
+/**
+ * health-matrix-chart.css
+ * -----------------------
+ * Visuals for the parallel-coordinates neon health chart rendered by
+ * js/ui/health-matrix-chart.js.  Works for both the Team Health Matrix
+ * (index.html) and the Sprint Health Matrix (project-detail.html).
+ *
+ * Dark theme is the default; `html.theme-light .hmx-*` overrides at the
+ * bottom keep the same vibe on the light dashboard.
+ *
+ * A per-row CSS custom property `--hmx-color` is set inline by the renderer
+ * and drives every hue (line stroke, glow filter, dot fill, rail swatch,
+ * active-state accents).
+ */
+
+/* ─────────────────────────── layout ─────────────────────────── */
+.hmx-wrap {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(220px, 260px) 1fr;
+    /* Vertically center the rail against the chart. Both grid children
+       get `align-self: center` via this, so when the legend is shorter
+       than the chart (the typical case for 3-8 teams) the legend sits
+       next to the chart's midline instead of pinned to the top. */
+    align-items: center;
+    gap: 16px;
+    padding: 18px 8px 8px;
+    min-height: 360px;
+}
+
+@media (max-width: 820px) {
+    .hmx-wrap {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        /* Stack vertically — center alignment becomes irrelevant, and
+           stretching the rail looks better than centering it on mobile. */
+        align-items: stretch;
+    }
+}
+
+.hmx-empty {
+    padding: 48px 16px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+/* ─────────────────────────── left rail ──────────────────────── */
+.hmx-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 4px 6px 10px;
+    max-height: 420px;
+    overflow-y: auto;
+}
+.hmx-rail::-webkit-scrollbar         { width: 6px; }
+.hmx-rail::-webkit-scrollbar-thumb   { background: rgba(255, 255, 255, 0.08); border-radius: 999px; }
+.hmx-rail::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.14); }
+
+.hmx-rail-item {
+    --hmx-color: #34d399;
+    display: grid;
+    grid-template-columns: 10px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 160ms ease, transform 160ms ease, opacity 200ms ease;
+    border: 1px solid transparent;
+    user-select: none;
+}
+a.hmx-rail-item,
+a.hmx-rail-item:hover,
+a.hmx-rail-item:focus,
+a.hmx-rail-item:visited {
+    text-decoration: none;
+    color: inherit;
+}
+a.hmx-rail-item:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--hmx-color) 70%, transparent);
+    outline-offset: 2px;
+}
+.hmx-rail-item:hover,
+.hmx-rail-item.is-active {
+    background: rgba(255, 255, 255, 0.045);
+    border-color: color-mix(in srgb, var(--hmx-color) 45%, transparent);
+    transform: translateX(2px);
+}
+.hmx-rail-item.is-dim {
+    opacity: 0.38;
+}
+
+.hmx-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--hmx-color);
+    box-shadow:
+        0 0 6px  color-mix(in srgb, var(--hmx-color) 75%, transparent),
+        0 0 14px color-mix(in srgb, var(--hmx-color) 50%, transparent);
+    flex-shrink: 0;
+}
+
+.hmx-rail-meta { min-width: 0; }
+.hmx-rail-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+.hmx-team-name {
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+a.hmx-team-name:hover,
+a.hmx-rail-item:hover .hmx-team-name,
+a.hmx-rail-item:focus-visible .hmx-team-name { color: #fff; }
+.hmx-rail-sub {
+    color: #64748b;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+.hmx-rail-score {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: #cbd5e1;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+}
+.hmx-rail-item[data-tier="5"] .hmx-rail-score { color: #6ee7b7; border-color: rgba(52, 211, 153, 0.35); background: rgba(16, 185, 129, 0.12); }
+.hmx-rail-item[data-tier="4"] .hmx-rail-score { color: #7dd3fc; border-color: rgba(56, 189, 248, 0.35); background: rgba(14, 165, 233, 0.12); }
+.hmx-rail-item[data-tier="3"] .hmx-rail-score { color: #fcd34d; border-color: rgba(251, 191, 36, 0.35); background: rgba(234, 179, 8, 0.12); }
+.hmx-rail-item[data-tier="2"] .hmx-rail-score { color: #fdba74; border-color: rgba(251, 146, 60, 0.38); background: rgba(249, 115, 22, 0.14); }
+.hmx-rail-item[data-tier="1"] .hmx-rail-score { color: #fca5a5; border-color: rgba(248, 113, 113, 0.38); background: rgba(239, 68, 68, 0.14); }
+
+/* Board-type pills inside the rail (sprint / kanban / critical / …) */
+.hmx-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 7.5px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 999px;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+.hmx-pill--sprint   { background: rgba(17, 94, 89, 0.92);  border: 1px solid rgba(45, 212, 191, 0.55); color: #f0fdfa; }
+.hmx-pill--kanban   { background: rgba(91, 33, 182, 0.92); border: 1px solid rgba(196, 181, 253, 0.55); color: #faf5ff; }
+.hmx-pill--critical { background: rgba(127, 29, 29, 0.92); border: 1px solid rgba(248, 113, 113, 0.55); color: #fee2e2; }
+
+/* ─────────────────────────── plot area ──────────────────────── */
+.hmx-plot {
+    position: relative;
+    min-height: 320px;
+}
+.hmx-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    min-height: 320px;
+    overflow: visible;
+}
+
+/* axes & ticks */
+.hmx-axis {
+    stroke: rgba(255, 255, 255, 0.10);
+    stroke-width: 1;
+}
+.hmx-axis-label {
+    fill: #94a3b8;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+.hmx-tick {
+    fill: #64748b;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9.5px;
+    font-weight: 600;
+}
+
+/* lines & dots */
+.hmx-row {
+    --hmx-color: #34d399;
+    transition: opacity 220ms ease;
+    cursor: pointer;
+}
+.hmx-row.is-dim { opacity: 0.18; }
+
+.hmx-line {
+    fill: none;
+    stroke: var(--hmx-color);
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: url(#hmxGlow);
+    transition: stroke-width 180ms ease, filter 180ms ease;
+}
+.hmx-row.is-active .hmx-line { stroke-width: 3.2; }
+
+.hmx-line-hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 16;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: stroke;
+    cursor: pointer;
+}
+
+.hmx-dot {
+    fill: var(--hmx-color);
+    stroke: rgba(255, 255, 255, 0.85);
+    stroke-width: 1.1;
+    filter: url(#hmxDotGlow);
+    transition: r 160ms ease, stroke-width 160ms ease;
+    cursor: pointer;
+}
+.hmx-dot:hover,
+.hmx-row.is-active .hmx-dot {
+    r: 5.5;
+    stroke-width: 1.6;
+}
+
+/* ─────────────────────────── tooltip ────────────────────────── */
+.hmx-tooltip {
+    position: absolute;
+    pointer-events: none;
+    transform: translate(-50%, -100%);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+    font-size: 11px;
+    font-weight: 700;
+    color: #e2e8f0;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 140ms ease, visibility 140ms ease;
+    z-index: 20;
+}
+.hmx-tooltip.is-visible { opacity: 1; visibility: visible; }
+.hmx-tooltip strong      { color: #f8fafc; font-weight: 900; letter-spacing: 0.01em; }
+.hmx-tooltip .hmx-tt-sep { opacity: 0.45; margin: 0 6px; }
+.hmx-tooltip .hmx-tt-val { font-family: 'JetBrains Mono', ui-monospace, monospace; color: #a7f3d0; margin-left: 4px; }
+
+/* ─────────────────────────── light theme overrides ──────────── */
+html.theme-light .hmx-rail::-webkit-scrollbar-thumb       { background: rgba(15, 23, 42, 0.15); }
+html.theme-light .hmx-rail::-webkit-scrollbar-thumb:hover { background: rgba(15, 23, 42, 0.25); }
+
+html.theme-light .hmx-rail-item:hover,
+html.theme-light .hmx-rail-item.is-active {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: color-mix(in srgb, var(--hmx-color) 55%, transparent);
+}
+
+html.theme-light .hmx-team-name      { color: #0f172a; }
+html.theme-light a.hmx-team-name:hover,
+html.theme-light a.hmx-rail-item:hover .hmx-team-name,
+html.theme-light a.hmx-rail-item:focus-visible .hmx-team-name { color: #1d4ed8; }
+html.theme-light .hmx-rail-sub       { color: #64748b; }
+html.theme-light .hmx-rail-score     { color: #334155; background: rgba(15, 23, 42, 0.04); border-color: rgba(15, 23, 42, 0.10); }
+
+html.theme-light .hmx-rail-item[data-tier="5"] .hmx-rail-score { color: #047857; border-color: rgba(5, 150, 105, 0.40);  background: rgba(16, 185, 129, 0.12); }
+html.theme-light .hmx-rail-item[data-tier="4"] .hmx-rail-score { color: #0369a1; border-color: rgba(2, 132, 199, 0.40);  background: rgba(14, 165, 233, 0.12); }
+html.theme-light .hmx-rail-item[data-tier="3"] .hmx-rail-score { color: #92400e; border-color: rgba(217, 119, 6, 0.40);  background: rgba(234, 179, 8, 0.16); }
+html.theme-light .hmx-rail-item[data-tier="2"] .hmx-rail-score { color: #9a3412; border-color: rgba(234, 88, 12, 0.42);  background: rgba(249, 115, 22, 0.16); }
+html.theme-light .hmx-rail-item[data-tier="1"] .hmx-rail-score { color: #991b1b; border-color: rgba(220, 38, 38, 0.42);  background: rgba(239, 68, 68, 0.16); }
+
+html.theme-light .hmx-pill--sprint   { background: rgba(236, 253, 245, 0.95); border-color: rgba(16, 185, 129, 0.55); color: #065f46; }
+html.theme-light .hmx-pill--kanban   { background: rgba(245, 243, 255, 0.95); border-color: rgba(124, 58, 237, 0.55); color: #5b21b6; }
+html.theme-light .hmx-pill--critical { background: rgba(254, 242, 242, 0.95); border-color: rgba(220, 38, 38, 0.55); color: #991b1b; }
+
+html.theme-light .hmx-axis       { stroke: rgba(15, 23, 42, 0.12); }
+html.theme-light .hmx-axis-label { fill: #334155; }
+html.theme-light .hmx-tick       { fill: #64748b; }
+
+/* Slightly darker neon glow on a light background so lines stay visible. */
+html.theme-light .hmx-line { stroke-width: 2.6; }
+html.theme-light .hmx-dot  { stroke: rgba(15, 23, 42, 0.65); }
+
+html.theme-light .hmx-tooltip {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+}
+html.theme-light .hmx-tooltip strong     { color: #0f172a; }
+html.theme-light .hmx-tooltip .hmx-tt-val { color: #047857; }
+
+/* ─────────────────────── outer card overrides ────────────────────────
+ * The Team / Sprint Health Matrix sections on index.html and
+ * project-detail.html wrap the chart in a card whose dark appearance is
+ * baked into `style="background:linear-gradient(...);backdrop-filter:..."`
+ * inline attributes.  These overrides flip the card to a light surface
+ * on the light theme.  `#sprintHealthMatrixSection` on project-detail.html
+ * already has a more specific `body.pd-page` override in
+ * project-detail-light.css — that still wins because of the extra class.
+ * ──────────────────────────────────────────────────────────────────── */
+html.theme-light #teamHealthMatrixSection > div:first-child,
+html.theme-light #sprintHealthMatrixSection > div:first-child {
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.98) 0%, rgba(241, 245, 249, 0.95) 40%, rgba(248, 250, 252, 0.98) 100%) !important;
+    border-color: rgba(148, 163, 184, 0.30) !important;
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* Decorative radial blurs — soften so they don't muddy the white card. */
+html.theme-light #teamHealthMatrixSection .pointer-events-none.absolute,
+html.theme-light #sprintHealthMatrixSection .pointer-events-none.absolute {
+    opacity: 0.12 !important;
+}
+
+/* Header divider + the rounded border around the chart mount. */
+html.theme-light #teamHealthMatrixSection .border-white\/\[0\.06\],
+html.theme-light #sprintHealthMatrixSection .border-white\/\[0\.06\],
+html.theme-light #teamHealthMatrixSection .border-white\/\[0\.08\],
+html.theme-light #sprintHealthMatrixSection .border-white\/\[0\.08\] {
+    border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Section heading ("Team Health Matrix" / "Sprint Health Matrix"). */
+html.theme-light #teamHealthMatrixSection h3.text-white,
+html.theme-light #sprintHealthMatrixSection h3.text-white {
+    color: #0f172a !important;
+}
+
+/* Sub-description + legend labels next to the colored dots. */
+html.theme-light #teamHealthMatrixSection .text-slate-500,
+html.theme-light #sprintHealthMatrixSection .text-slate-500 {
+    color: #475569 !important;
+}
+html.theme-light #teamHealthMatrixSection .text-slate-600,
+html.theme-light #sprintHealthMatrixSection .text-slate-600 {
+    color: #334155 !important;
+}
+
+/* "Pillar Scores" header badge + sprint/kanban board pills — readable on white. */
+html.theme-light #teamHealthMatrixSection .health-matrix-header-badge,
+html.theme-light #sprintHealthMatrixSection .health-matrix-header-badge {
+    background: #a7f3d0 !important;
+    border-color: #059669 !important;
+    color: #064e3b !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Mount container that hosts the actual SVG chart. */
+html.theme-light #teamHealthMatrixMount,
+html.theme-light #sprintHealthMatrixMount {
+    border-color: rgba(15, 23, 42, 0.10) !important;
+    background: #ffffff;
+}
+
+/* Scoring guide <details> summary hover color (dark → readable on light). */
+html.theme-light #teamHealthMatrixSection details summary.hover\:text-slate-300:hover,
+html.theme-light #sprintHealthMatrixSection details summary.hover\:text-slate-300:hover {
+    color: #1e293b !important;
+}

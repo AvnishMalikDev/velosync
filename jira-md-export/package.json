@@ -1,0 +1,21 @@
+{
+  "name": "jira-md-export",
+  "version": "2.0.0",
+  "description": "Modular JIRA / Confluence / GitHub / Copilot / Cursor / TestRail metrics → markdown exporter",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "copilot": "node src/connectors/copilot/client.js",
+    "cursor": "node src/connectors/cursor/client.js",
+    "confluence": "node src/connectors/confluence/client.js",
+    "debug:tokens": "node src/debug/token-check.js",
+    "debug:work-classification": "node src/debug/issue-work-classification.js",
+    "sync:testrail-users": "node src/connectors/testrail/user-sync.js",
+    "fetch:testrail-users": "node src/connectors/testrail/user-fetch.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "xlsx": "^0.18.5"
+  }
+}

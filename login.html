@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in — Team Insights</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Login uses Tailwind only — do not load dashboard css/dashboard-*.css (they fight Tailwind dark: here). -->
+  <script src="js/theme-init.js"></script>
+</head>
+<body class="login-page min-h-screen font-[Inter] antialiased text-slate-800 dark:text-slate-100 bg-gradient-to-br from-slate-100 via-white to-slate-200 dark:from-[#070b14] dark:via-slate-950 dark:to-[#0a1020]">
+  <div class="min-h-screen flex flex-col items-center justify-center p-6">
+    <div class="w-full max-w-md rounded-2xl border border-slate-200/90 bg-white/95 shadow-xl shadow-slate-900/10 backdrop-blur-xl p-8 dark:border-slate-700/60 dark:bg-slate-900/90 dark:shadow-2xl dark:shadow-black/50 dark:ring-1 dark:ring-white/[0.06]">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200/80 flex items-center justify-center shrink-0 overflow-hidden dark:bg-white/[0.08] dark:border-white/[0.1]">
+            <img id="loginBrandLogo" src="/logo.svg" alt="" data-brand-logo data-default-logo="/logo.svg" class="w-8 h-8 object-contain" />
+          </div>
+          <div class="min-w-0">
+            <p id="loginBrandKicker" class="text-[10px] font-black uppercase tracking-[0.25em] text-blue-600 dark:text-sky-400 truncate">Sign in</p>
+            <h1 id="loginBrandTitle" class="text-lg font-bold text-slate-900 dark:text-white truncate">Team Insights</h1>
+          </div>
+        </div>
+        <button type="button" id="themeToggle" class="w-10 h-10 rounded-lg border border-slate-300 bg-white/80 text-slate-600 hover:bg-slate-50 transition-colors shrink-0 dark:border-slate-600 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-800" title="Toggle theme" aria-label="Toggle theme">
+          <span id="iconMoon" class="block text-center">&#9790;</span>
+          <span id="iconSun" class="hidden block text-center">&#9788;</span>
+        </button>
+      </div>
+
+      <div id="firstSetupCallout" class="hidden mb-6 rounded-xl border border-amber-200/90 bg-amber-50/95 p-4 text-left shadow-sm dark:border-amber-500/35 dark:bg-amber-950/45 dark:shadow-none" role="region" aria-label="First-time setup help">
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-amber-800 dark:text-amber-300 mb-2">First-time setup</p>
+        <p class="text-sm text-amber-950 dark:text-amber-100/95 leading-relaxed">Microsoft sign-in is not connected on this server yet. That is expected right after you install the product—we use a temporary administrator so you can finish setup in the browser.</p>
+        <ol class="mt-3 text-[13px] text-amber-950/95 dark:text-amber-100/90 list-decimal pl-5 space-y-2.5 leading-snug">
+          <li><strong>Sign in below</strong> with the starter account the app created for you: username <code id="fsUser" class="font-mono text-[12px] bg-white/90 dark:bg-black/30 px-1.5 py-0.5 rounded border border-amber-300/60 dark:border-amber-500/30"></code> and password <code id="fsPass" class="font-mono text-[12px] bg-white/90 dark:bg-black/30 px-1.5 py-0.5 rounded border border-amber-300/60 dark:border-amber-500/30"></code>.</li>
+          <li>Right after login, we will walk you through <strong>Platform</strong> (session secret, URLs) and then Jira. Microsoft Entra is optional—only if you set <code class="text-[11px] font-mono bg-white/90 dark:bg-black/30 px-1 rounded">AUTH_MODE=azure</code>.</li>
+          <li>Change this starter password under <strong>Admin → Settings</strong> and add your real users before going to production.</li>
+        </ol>
+      </div>
+
+      <div id="localModeIntro" class="hidden mb-5 rounded-xl border border-sky-200/90 bg-sky-50/90 p-4 text-left dark:border-sky-500/30 dark:bg-sky-950/35" role="region" aria-label="Local sign-in help">
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-sky-800 dark:text-sky-300 mb-1.5">Username and password mode</p>
+        <p class="text-sm text-sky-950/95 dark:text-sky-100/90 leading-relaxed">This deployment uses a normal login form—no Microsoft button. If no one has changed it yet, the first administrator is <code id="localFsUser" class="font-mono text-[12px] bg-white/90 dark:bg-black/25 px-1 rounded"></code> / <code id="localFsPass" class="font-mono text-[12px] bg-white/90 dark:bg-black/25 px-1 rounded"></code>. Change that password after you sign in.</p>
+      </div>
+
+      <div id="azurePanel" class="hidden space-y-4">
+        <a href="/auth/azure" class="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors shadow-md shadow-blue-600/25 dark:shadow-lg dark:shadow-blue-500/20">
+          <img src="/integrations/microsoft.svg" alt="" class="h-5 w-5 shrink-0 object-contain brightness-0 invert opacity-95" width="20" height="20">
+          Sign in with Microsoft
+        </a>
+      </div>
+
+      <div id="localPanel" class="hidden space-y-4">
+        <p id="localPanelLead" class="text-sm text-slate-600 dark:text-slate-400">Username and password</p>
+        <form id="localForm" class="space-y-4">
+          <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-500 mb-1">Username</label>
+            <input id="localUser" type="text" autocomplete="username" value="admin" class="w-full rounded-lg bg-white border border-slate-300 px-3 py-2.5 text-slate-900 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-slate-950/80 dark:border-slate-700 dark:text-white" required>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-500 mb-1">Password</label>
+            <input id="localPass" type="password" autocomplete="current-password" value="admin" class="w-full rounded-lg bg-white border border-slate-300 px-3 py-2.5 text-slate-900 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-slate-950/80 dark:border-slate-700 dark:text-white" required>
+          </div>
+          <p id="localErr" class="text-sm text-red-600 dark:text-red-400 hidden"></p>
+          <button type="submit" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-colors">Sign in</button>
+        </form>
+      </div>
+
+      <p id="localBootstrapHint" class="hidden mt-6 text-[11px] text-slate-600 dark:text-slate-500 text-center">Bootstrap account: <code class="text-slate-700 dark:text-slate-400">admin</code> / <code class="text-slate-700 dark:text-slate-400">admin</code> — change in Admin → Settings after login.</p>
+      <p class="mt-5 text-center">
+        <a href="/whats-new" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-500 hover:underline dark:text-sky-400 dark:hover:text-sky-300">What&rsquo;s new?</a>
+        <span class="text-slate-400 dark:text-slate-600 text-[10px] mx-2" aria-hidden="true">&middot;</span>
+        <span class="text-[10px] text-slate-500 dark:text-slate-500">Release notes</span>
+      </p>
+    </div>
+  </div>
+  <script src="/js/apply-branding.js" defer></script>
+  <script>
+    (function () {
+      var KEY = 'dashboard-theme';
+      function applyTheme(dark) {
+        localStorage.setItem(KEY, dark ? 'dark' : 'light');
+        document.documentElement.classList.toggle('theme-light', !dark);
+        document.documentElement.classList.toggle('dark', dark);
+        document.getElementById('iconSun').classList.toggle('hidden', !dark);
+        document.getElementById('iconMoon').classList.toggle('hidden', dark);
+      }
+      document.getElementById('themeToggle').addEventListener('click', function () {
+        applyTheme(!document.documentElement.classList.contains('dark'));
+      });
+      if (document.documentElement.classList.contains('dark')) {
+        document.getElementById('iconSun').classList.remove('hidden');
+        document.getElementById('iconMoon').classList.add('hidden');
+      }
+
+      fetch('/api/auth/config', { credentials: 'same-origin' }).then(function (r) {
+        return r.ok ? r.json() : Promise.reject(new Error('auth config'));
+      }).then(function (cfg) {
+        var ms = !!cfg.microsoftLoginAvailable;
+        var local = !!cfg.localLoginAvailable;
+        var firstWalk = !!cfg.firstTimeSetupWalkthrough;
+        var su = cfg.starterAdminUsername || 'admin';
+        var sp = cfg.starterAdminPassword || 'admin';
+
+        if (firstWalk) {
+          document.getElementById('firstSetupCallout').classList.remove('hidden');
+          document.getElementById('loginBrandKicker').textContent = 'First-time setup';
+          document.getElementById('fsUser').textContent = su;
+          document.getElementById('fsPass').textContent = sp;
+          var lu = document.getElementById('localUser');
+          if (lu) lu.value = su;
+          var lp = document.getElementById('localPass');
+          if (lp) lp.value = sp;
+          var lead = document.getElementById('localPanelLead');
+          if (lead) lead.textContent = 'Starter administrator (change later in Admin)';
+        } else if (cfg.authMode === 'local' && local) {
+          document.getElementById('localModeIntro').classList.remove('hidden');
+          document.getElementById('localFsUser').textContent = su;
+          document.getElementById('localFsPass').textContent = sp;
+        }
+
+        if (ms) document.getElementById('azurePanel').classList.remove('hidden');
+        if (local) {
+          document.getElementById('localPanel').classList.remove('hidden');
+          if ((cfg.authMode === 'local' || !cfg.microsoftLoginAvailable) && !firstWalk) {
+            document.getElementById('localBootstrapHint').classList.remove('hidden');
+          }
+        }
+        if (ms && local) {
+          var az = document.getElementById('azurePanel');
+          var divider = document.createElement('div');
+          divider.className = 'flex items-center gap-3 py-2';
+          divider.innerHTML = '<div class="flex-1 h-px bg-slate-300 dark:bg-slate-700"></div><span class="text-[10px] font-bold uppercase text-slate-500 tracking-widest">Or</span><div class="flex-1 h-px bg-slate-300 dark:bg-slate-700"></div>';
+          az.parentNode.insertBefore(divider, document.getElementById('localPanel'));
+        }
+      }).catch(function () {
+        document.getElementById('localPanel').classList.remove('hidden');
+        document.getElementById('localBootstrapHint').classList.remove('hidden');
+      });
+
+      document.getElementById('localForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var err = document.getElementById('localErr');
+        err.classList.add('hidden');
+        var u = document.getElementById('localUser').value.trim();
+        var p = document.getElementById('localPass').value;
+        fetch('/auth/local/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ username: u, password: p }),
+        }).then(function (r) {
+          return r.json().then(function (j) { return { ok: r.ok, j: j }; });
+        }).then(function (x) {
+          if (x.ok) {
+            var role = x.j && x.j.role;
+            if (role === 'admin') {
+              fetch('/api/admin/setup-status', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (s) {
+                  // Only JIRA + OpenRouter are mandatory. Everything else is optional and
+                  // does not block post-login navigation.
+                  if (s && (s.needsJiraSetup || s.needsOpenRouterSetup)) {
+                    window.location.href = '/admin/settings.html?section=setup';
+                    return;
+                  }
+                  window.location.href = '/';
+                })
+                .catch(function () { window.location.href = '/'; });
+              return;
+            }
+            window.location.href = '/';
+            return;
+          }
+          err.textContent = x.j.error || 'Login failed';
+          err.classList.remove('hidden');
+        }).catch(function () {
+          err.textContent = 'Network error';
+          err.classList.remove('hidden');
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

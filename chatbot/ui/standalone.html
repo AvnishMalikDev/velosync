@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Assistant</title>
+    <!-- Apply saved theme before first paint to avoid flash -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('dashboard-theme');
+          if (t !== 'dark' && t !== 'light') t = 'light';
+          var dark = t === 'dark';
+          document.documentElement.classList.toggle('theme-light', !dark);
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+        /* Dark mode background (default) */
+        html:not(.theme-light) body { background: #0b1326; }
+        /* Light mode background */
+        html.theme-light body { background: #f8fafc; }
+    </style>
+</head>
+<body>
+    <!-- widget.js detects window.name === "cb-popout" and auto-opens in fullscreen mode. -->
+    <script src="/chatbot/ui/widget.js" defer></script>
+</body>
+</html>

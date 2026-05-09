@@ -1,0 +1,13 @@
+{
+  "name": "cycle-time-analysis",
+  "version": "1.0.0",
+  "description": "Standalone JIRA cycle time exploration script",
+  "type": "module",
+  "main": "cycle-time-analysis.js",
+  "scripts": {
+    "start": "node cycle-time-analysis.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  }
+}

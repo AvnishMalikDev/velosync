@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "connectors": {
+    "jira": {
+      "enabled": true
+    },
+    "confluence": {
+      "enabled": true
+    },
+    "github": {
+      "enabled": true
+    },
+    "copilot": {
+      "enabled": true
+    },
+    "cursor": {
+      "enabled": true
+    },
+    "testrail": {
+      "enabled": true
+    },
+    "openrouter": {
+      "enabled": true
+    }
+  }
+}

@@ -1,0 +1,332 @@
+/**
+ * Project detail page — light theme overrides (html.theme-light).
+ * Loaded after project-style.css; uses same localStorage key as main dashboard.
+ */
+
+html.theme-light body.pd-page {
+    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 55%, #f1f5f9 100%) !important;
+    color: #0f172a !important;
+}
+
+html.theme-light body.pd-page #breadcrumb,
+html.theme-light body.pd-page #projectNameDisplay {
+    color: #0f172a !important;
+}
+
+html.theme-light body.pd-page #managerDisplay {
+    color: #475569 !important;
+}
+
+html.theme-light body.pd-page #ssoUserStrip {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-color: rgba(148, 163, 184, 0.45) !important;
+}
+/* Strip uses light surface — name was `text-white` (invisible on white) */
+html.theme-light body.pd-page #ssoUserName {
+    color: #0f172a !important;
+}
+html.theme-light body.pd-page #ssoUserInfo > span.text-slate-500 {
+    color: #64748b !important;
+}
+html.theme-light body.pd-page #ssoUserStrip a[href="/logout"] {
+    color: #475569 !important;
+}
+html.theme-light body.pd-page #ssoUserStrip a[href="/logout"]:hover {
+    color: #0f172a !important;
+}
+
+html.theme-light body.pd-page .card {
+    background: rgba(255, 255, 255, 0.94) !important;
+    border-color: rgba(15, 23, 42, 0.08) !important;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08) !important;
+}
+
+html.theme-light body.pd-page .card:hover {
+    background: rgba(255, 255, 255, 1) !important;
+    border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+/* Anomaly cards — light surface + dark type (inner slate panel was low-contrast) */
+html.theme-light body.pd-page .pd-anomaly-card {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06) !important;
+}
+html.theme-light body.pd-page .pd-anomaly-card:hover {
+    border-color: rgba(239, 68, 68, 0.35) !important;
+}
+html.theme-light body.pd-page .pd-anomaly-title {
+    color: #0f172a !important;
+}
+html.theme-light body.pd-page .pd-anomaly-date,
+html.theme-light body.pd-page .pd-anomaly-owner {
+    color: #475569 !important;
+}
+html.theme-light body.pd-page .pd-anomaly-issue {
+    color: #334155 !important;
+    border-top-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Severity label — Tailwind red-400/amber-400 are faint on light cards */
+html.theme-light body.pd-page .pd-anomaly-severity.text-red-400 {
+    color: #b91c1c !important;
+}
+html.theme-light body.pd-page .pd-anomaly-severity.text-amber-400 {
+    color: #b45309 !important;
+}
+
+/* Anomaly / blocker cards — less empty vertical space when full-width (single column / “easy” reading) */
+@media (max-width: 1023px) {
+    html.theme-light body.pd-page .pd-anomaly-card {
+        padding: 0.625rem 0.875rem !important;
+    }
+    html.theme-light body.pd-page .pd-anomaly-meta {
+        gap: 0.25rem 0.5rem !important;
+    }
+    html.theme-light body.pd-page .pd-anomaly-title {
+        margin-top: 0.375rem !important;
+    }
+    html.theme-light body.pd-page .pd-anomaly-issue {
+        margin-top: 0.375rem !important;
+        padding-top: 0.375rem !important;
+    }
+}
+
+html.theme-light body.pd-page .card.group > h3.text-slate-500 {
+    color: #475569 !important;
+}
+
+html.theme-light body.pd-page tr {
+    border-bottom-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+html.theme-light body.pd-page tr:hover {
+    background: rgba(59, 130, 246, 0.06) !important;
+}
+
+html.theme-light body.pd-page .tick-text {
+    color: #334155 !important;
+}
+
+html.theme-light body.pd-page .tick-sprint {
+    color: #475569 !important;
+}
+
+html.theme-light body.pd-page .tick-line {
+    background: rgba(15, 23, 42, 0.12) !important;
+}
+
+html.theme-light body.pd-page .tick-mark.active .tick-text {
+    color: #0f172a !important;
+}
+
+html.theme-light body.pd-page .tick-mark.active .tick-sprint {
+    color: #0369a1 !important;
+}
+
+html.theme-light body.pd-page .custom-slider::-webkit-slider-thumb {
+    border-color: #e2e8f0 !important;
+}
+
+html.theme-light body.pd-page #modelSelector option {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+}
+
+html.theme-light body.pd-page .detail-geo-panel,
+html.theme-light body.pd-page .detail-workcat-panel,
+html.theme-light body.pd-page .detail-epic-panel {
+    border-color: rgba(15, 23, 42, 0.1) !important;
+    background: linear-gradient(145deg, rgba(248, 250, 252, 0.98) 0%, rgba(241, 245, 249, 0.95) 100%) !important;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06) !important;
+}
+
+html.theme-light body.pd-page .detail-chart-glass {
+    background: rgba(255, 255, 255, 0.55) !important;
+    border-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+/* Stacked chart cards — header strip: solid surface + high-contrast type (Tailwind gradient utilities must not bleed through) */
+html.theme-light body.pd-page .pd-chart-card-header {
+    background: #f1f5f9 !important;
+    background-image: none !important;
+    border-bottom-color: rgba(15, 23, 42, 0.12) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+html.theme-light body.pd-page .pd-chart-card-header h3 {
+    color: #0f172a !important;
+    text-shadow: none !important;
+}
+html.theme-light body.pd-page .pd-chart-card-header p,
+html.theme-light body.pd-page .pd-chart-card-blurb {
+    color: #334155 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    line-height: 1.5 !important;
+    max-width: none !important;
+}
+html.theme-light body.pd-page .pd-chart-card-header strong {
+    color: #0f172a !important;
+    font-weight: 600 !important;
+}
+html.theme-light body.pd-page .pd-chart-card-header code {
+    color: #1e293b !important;
+    background: rgba(15, 23, 42, 0.06) !important;
+}
+html.theme-light body.pd-page .pd-chart-card-header [class*="text-teal-4"] {
+    color: #0f766e !important;
+}
+html.theme-light body.pd-page .pd-chart-card-header [class*="text-blue-4"] {
+    color: #1d4ed8 !important;
+}
+html.theme-light body.pd-page .pd-chart-card-header [class*="text-violet-4"] {
+    color: #5b21b6 !important;
+}
+
+html.theme-light body.pd-page .health-matrix-table thead th {
+    background: rgba(248, 250, 252, 0.98) !important;
+    color: #334155 !important;
+}
+
+html.theme-light body.pd-page .health-matrix-table tbody tr:hover {
+    background: rgba(59, 130, 246, 0.05) !important;
+}
+
+html.theme-light body.pd-page h3.text-white {
+    color: #0f172a !important;
+}
+
+html.theme-light body.pd-page #sprintHealthMatrixSection > div:first-child {
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.98) 0%, rgba(241, 245, 249, 0.95) 40%, rgba(248, 250, 252, 0.98) 100%) !important;
+    border-color: rgba(148, 163, 184, 0.25) !important;
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06) !important;
+}
+
+html.theme-light body.pd-page .health-matrix-table th.text-slate-300 {
+    color: #334155 !important;
+}
+
+html.theme-light body.pd-page .health-matrix-header-badge {
+    background: #a7f3d0 !important;
+    border: 1px solid #059669 !important;
+    color: #064e3b !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+}
+html.theme-light body.pd-page .health-matrix-board-pill--sprint {
+    background: #ccfbf1 !important;
+    border: 1px solid #0d9488 !important;
+    color: #134e4a !important;
+}
+html.theme-light body.pd-page .health-matrix-board-pill--kanban {
+    background: #ede9fe !important;
+    border: 1px solid #7c3aed !important;
+    color: #4c1d95 !important;
+}
+
+html.theme-light body.pd-page header > div.flex-1 {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+html.theme-light body.pd-page thead[class*="bg-slate-900"] {
+    background: rgba(241, 245, 249, 0.95) !important;
+    color: #475569 !important;
+}
+
+html.theme-light body.pd-page thead[class*="bg-slate-900"] th {
+    color: #475569 !important;
+}
+
+html.theme-light body.pd-page #historyTableBody .pd-history-review-date {
+    color: #0f172a !important;
+}
+
+html.theme-light body.pd-page #historyTableBody tr:hover {
+    background-color: rgba(15, 23, 42, 0.04) !important;
+}
+
+html.theme-light body.pd-page #githubDataDetailSection,
+html.theme-light body.pd-page #qaDataDetailSection {
+    background: #ffffff !important;
+    border-color: rgba(15, 23, 42, 0.1) !important;
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+html.theme-light body.pd-page #githubDataDetailSection .border-b,
+html.theme-light body.pd-page #qaDataDetailSection .border-b {
+    border-color: #e2e8f0 !important;
+}
+html.theme-light body.pd-page #githubDataDetailSection > div:first-child {
+    background: #f8fafc !important;
+    border-bottom-color: #e2e8f0 !important;
+}
+html.theme-light body.pd-page #githubDataDetailSection h3,
+html.theme-light body.pd-page #qaDataDetailSection h3 {
+    color: #0f172a !important;
+}
+html.theme-light body.pd-page #githubDataDetailSection > div:first-child span {
+    color: #475569 !important;
+}
+html.theme-light body.pd-page #githubDataDetailSection .text-slate-500,
+html.theme-light body.pd-page #qaDataDetailSection .text-slate-500 {
+    color: #64748b !important;
+}
+html.theme-light body.pd-page .lb-header-blurb,
+html.theme-light body.pd-page .lb-qa-detail-subtitle {
+    color: #475569 !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    line-height: 1.5 !important;
+    max-width: none !important;
+}
+html.theme-light body.pd-page .lb-header-blurb strong {
+    color: #334155 !important;
+    font-weight: 600 !important;
+}
+/* QA detail — header strip + tier legend (was low-contrast on glass) */
+html.theme-light body.pd-page #qaDataDetailSection > div.relative.border-b {
+    background: #f8fafc !important;
+    border-bottom-color: #e2e8f0 !important;
+}
+html.theme-light body.pd-page #qaDataDetailSection > div.relative.border-b > div.absolute {
+    opacity: 0.06 !important;
+}
+html.theme-light body.pd-page #qaDataDetailSection > div.relative.border-b [class*="text-emerald-4"] {
+    color: #0f766e !important;
+}
+html.theme-light body.pd-page #qaDataDetailSection > div.relative.border-b [class*="text-blue-4"] {
+    color: #1d4ed8 !important;
+}
+html.theme-light body.pd-page #qaDataDetailSection > div.relative.border-b [class*="text-amber-4"] {
+    color: #b45309 !important;
+}
+html.theme-light body.pd-page #qaDataDetailSection > div.relative.border-b [class*="text-rose-3"] {
+    color: #be123c !important;
+}
+html.theme-light body.pd-page #githubDataDetailSection .github-metrics-table thead tr,
+html.theme-light body.pd-page #qaDataDetailSection .github-metrics-table thead tr {
+    background: #eef2f7 !important;
+    border-color: #cbd5e1 !important;
+}
+html.theme-light body.pd-page #githubDataDetailSection .github-metrics-table thead th,
+html.theme-light body.pd-page #qaDataDetailSection .github-metrics-table thead th {
+    color: #0f172a !important;
+}
+html.theme-light body.pd-page #githubLeaderboardDetailBody,
+html.theme-light body.pd-page #qaLeaderboardDetailBody {
+    color: #334155 !important;
+}
+html.theme-light body.pd-page .dev-leaderboard-table-wrap th.dev-data-sort:hover,
+html.theme-light body.pd-page .dev-leaderboard-table-wrap th.qa-data-sort:hover {
+    color: #2563eb !important;
+}
+
+html.theme-light body.pd-page .gh-score-track {
+    background: #cbd5e1 !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+html.theme-light body.pd-page .dev-leaderboard-table-wrap .gh-score-track > div[class*="bg-gradient"] {
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
+}

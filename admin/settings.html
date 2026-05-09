@@ -1,0 +1,469 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="theme-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Settings</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/dashboard-light.css" id="dashboardThemeCss">
+  <script src="../js/theme-init.js"></script>
+</head>
+<body id="adminSettingsPage" class="min-h-screen font-[Inter] antialiased text-slate-800 bg-gradient-to-br from-slate-100 via-white to-slate-200 dark:text-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+  <div id="toast" class="hidden fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl text-sm shadow-lg max-w-md border"></div>
+
+  <header class="sticky top-0 z-40 border-b border-slate-200/90 bg-white/90 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/90">
+    <div class="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <a href="/" class="text-[10px] font-black uppercase tracking-widest text-blue-700 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">← Dashboard</a>
+        <span class="text-slate-400 dark:text-slate-600">|</span>
+        <h1 class="text-sm font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white">Admin / Settings</h1>
+      </div>
+      <button type="button" id="dashboardThemeToggle" class="flex items-center justify-center w-10 h-10 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors dark:border-slate-600/80 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800" title="Toggle theme" aria-pressed="false">
+        <span id="dashboardThemeIconSun" class="hidden text-lg">&#9788;</span>
+        <span id="dashboardThemeIconMoon" class="text-lg">&#9790;</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-[1600px] mx-auto flex flex-col lg:flex-row min-h-[calc(100vh-56px)]">
+    <aside class="shrink-0 border-b border-slate-200/70 bg-slate-50/40 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/20 lg:w-64 lg:border-b-0 lg:border-r lg:border-slate-200/50 lg:bg-transparent lg:backdrop-blur-none dark:lg:border-white/5 p-3 sm:p-4 lg:sticky lg:top-14 lg:self-start lg:max-h-[calc(100vh-3.5rem)] z-30">
+      <div class="relative overflow-hidden rounded-2xl border border-white/70 bg-gradient-to-br from-white/55 via-white/35 to-indigo-50/30 shadow-[0_8px_32px_-8px_rgba(79,70,229,0.18),inset_0_1px_0_0_rgba(255,255,255,0.65)] backdrop-blur-2xl ring-1 ring-slate-200/40 dark:border-white/10 dark:from-slate-900/55 dark:via-slate-950/45 dark:to-indigo-950/25 dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.06)] dark:ring-white/10 p-3 sm:p-4">
+        <div class="pointer-events-none absolute -left-10 top-0 h-36 w-36 rounded-full bg-indigo-400/25 blur-3xl dark:bg-violet-600/20" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -right-8 -bottom-6 h-28 w-28 rounded-full bg-cyan-400/20 blur-2xl dark:bg-cyan-500/10" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute left-1/2 top-1/2 h-px w-[120%] -translate-x-1/2 -translate-y-1/2 rotate-[-8deg] bg-gradient-to-r from-transparent via-indigo-400/15 to-transparent dark:via-violet-400/10" aria-hidden="true"></div>
+        <div class="relative mb-3 flex items-center gap-2 px-0.5">
+          <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] dark:from-indigo-400 dark:to-fuchsia-500 dark:shadow-[0_0_10px_rgba(167,139,250,0.45)]" aria-hidden="true"></span>
+          <p class="text-[10px] font-black uppercase tracking-[0.28em] text-slate-600 dark:text-slate-300">Settings</p>
+        </div>
+        <button type="button" id="setupWizardOpenBtn" class="group relative w-full overflow-hidden rounded-xl border border-indigo-300/80 bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 px-3 py-3 text-left shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:brightness-105 dark:border-indigo-500/40 dark:from-indigo-500 dark:via-violet-600 dark:to-fuchsia-600 dark:shadow-indigo-950/50 mb-3">
+          <span class="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-white/10 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true"></span>
+          <span class="relative flex items-center gap-2">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20 text-base" aria-hidden="true">✦</span>
+            <span class="min-w-0">
+              <span class="block text-[11px] font-black uppercase tracking-[0.2em] text-white">Wizard mode</span>
+              <span class="block text-[10px] font-semibold text-white/85 leading-snug">Guided setup for new installs</span>
+            </span>
+          </span>
+        </button>
+        <nav class="relative flex flex-col gap-1" aria-label="Admin sections">
+          <button type="button" data-section-nav="general" class="admin-nav-btn w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ease-out">Platform</button>
+          <button type="button" data-section-nav="branding" class="admin-nav-btn w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ease-out">Logo, icon &amp; title</button>
+          <button type="button" data-section-nav="setup" class="admin-nav-btn w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ease-out">Setup (Jira)</button>
+          <button type="button" data-section-nav="connectors" class="admin-nav-btn w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ease-out">Connectors</button>
+          <button type="button" data-section-nav="security" class="admin-nav-btn w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ease-out">HTTPS / SSL</button>
+          <button type="button" data-section-nav="projects" class="admin-nav-btn w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ease-out">Projects</button>
+          <button type="button" data-section-nav="scoring" class="admin-nav-btn w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ease-out">Configure weights</button>
+          <button type="button" data-section-nav="users" class="admin-nav-btn w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ease-out">Manage users</button>
+          <button type="button" data-section-nav="data-sync" class="admin-nav-btn w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ease-out">Data Sync Job</button>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="flex-1 p-4 lg:p-8 overflow-auto">
+      <div id="adminRestartHint" class="hidden mb-4 rounded-2xl border border-emerald-500/45 bg-emerald-50 p-4 text-sm text-emerald-950 shadow-sm shadow-emerald-900/5 dark:border-emerald-500/30 dark:bg-emerald-950/35 dark:text-emerald-100/95">
+        <p class="font-semibold text-emerald-900 dark:text-emerald-200">Restart the server for these changes to take effect</p>
+        <p class="mt-2 text-[13px] leading-relaxed text-emerald-950/95 dark:text-emerald-100/90">On the host, run <code class="text-[11px] font-mono bg-white/90 px-1.5 py-0.5 rounded border border-emerald-200/80 dark:bg-slate-900/80 dark:border-emerald-500/25">pm2 restart all</code> (Linux/macOS: <code class="text-[11px] font-mono bg-white/90 px-1.5 py-0.5 rounded border border-emerald-200/80 dark:bg-slate-900/80 dark:border-emerald-500/25">pm2</code> on PATH; Windows: often <code class="text-[11px] font-mono bg-white/90 px-1.5 py-0.5 rounded border border-emerald-200/80 dark:bg-slate-900/80 dark:border-emerald-500/25">pm2.cmd restart all</code>). Then sign in again so sessions and configuration reload cleanly—important on shared demos so old keys do not stay in memory.</p>
+      </div>
+      <div id="onboardingBannerPlatform" class="hidden mb-4 rounded-2xl border border-indigo-400/70 bg-indigo-50 p-4 text-sm text-indigo-950 dark:border-indigo-500/40 dark:bg-indigo-950/35 dark:text-indigo-100/95">
+        <strong class="font-semibold text-indigo-900 dark:text-indigo-200">Platform first:</strong>
+        <span class="block mt-1">Sign-in and session settings must be valid before the rest of setup. Open <strong class="text-indigo-950 dark:text-indigo-100">Platform</strong> and address the items below, then save platform .env.</span>
+        <ul id="platformSetupReasonsList" class="mt-2 text-[13px] text-indigo-900/90 dark:text-indigo-100/90 space-y-0.5"></ul>
+      </div>
+      <div id="onboardingBannerJira" class="hidden mb-6 rounded-2xl border border-amber-400/70 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100/95">
+        <strong class="font-semibold text-amber-800 dark:text-amber-200">Jira setup:</strong>
+        Jira is required before exports and dashboards work. Open <strong class="text-amber-900 dark:text-amber-100">Setup (Jira)</strong> to save your site URL and API token, then use <strong class="text-amber-900 dark:text-amber-100">Connectors</strong> as needed.
+      </div>
+
+      <div data-section-panel="branding" class="space-y-6">
+        <div class="rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 p-6 max-w-3xl dark:border-white/10 dark:bg-slate-900/50 dark:shadow-none">
+          <h2 class="text-xs font-black uppercase tracking-[0.2em] text-emerald-800 dark:text-emerald-400 mb-1">Logo, icon &amp; title</h2>
+          <p class="text-xs text-slate-600 dark:text-slate-500 mb-4">These settings apply to the <strong class="text-slate-800 dark:text-slate-400">sign-in page</strong>, <strong class="text-slate-800 dark:text-slate-400">main dashboard</strong>, <strong class="text-slate-800 dark:text-slate-400">admin</strong>, Explore, and RVeloSyncurce Insights. Uploads are saved under <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">branding/uploads/</code> and served at <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">/branding/…</code>. You can also paste any URL path (e.g. <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">/logo.svg</code>).</p>
+
+          <div id="brandingPreview" class="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/50">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 dark:bg-white/10 dark:border-white/10">
+                <img id="brandPreviewLogo" src="/logo.svg" alt="" class="max-h-10 max-w-10 object-contain">
+              </div>
+              <div class="min-w-0">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-500">Preview</p>
+                <p id="brandPreviewTitle" class="text-sm font-bold text-slate-900 truncate dark:text-white">—</p>
+                <div class="mt-1 flex items-center gap-2">
+                  <span class="text-[9px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Tab icon</span>
+                  <img id="brandPreviewFavicon" src="" alt="" class="h-4 w-4 object-contain hidden" width="16" height="16">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-6">
+            <div class="rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 dark:border-white/5 dark:bg-slate-950/30">
+              <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800 dark:text-emerald-300/90 mb-3">Site title</h3>
+              <p class="text-[11px] text-slate-600 dark:text-slate-500 mb-3">Used for the browser tab, the large headline on the login page, the loading screen title, the <strong class="text-slate-700 dark:text-slate-400">main dashboard title</strong> (gradient heading), and as the first part of titles on other pages.</p>
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">Site title</label><input id="brandSiteTitle" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="Team Insights"></div>
+            </div>
+            <div class="rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 dark:border-white/5 dark:bg-slate-950/30">
+              <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800 dark:text-emerald-300/90 mb-3">Dashboard tagline</h3>
+              <p class="text-[11px] text-slate-600 dark:text-slate-500 mb-3">Subtitle under the main title on the primary dashboard only.</p>
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">Header tagline</label><input id="brandHeaderTagline" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="Team insights"></div>
+            </div>
+            <div class="rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 dark:border-white/5 dark:bg-slate-950/30">
+              <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800 dark:text-emerald-300/90 mb-3">Favicon (browser icon)</h3>
+              <p class="text-[11px] text-slate-600 dark:text-slate-500 mb-3">Small icon in the browser tab. Default: <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">/favicon.ico</code> if present.</p>
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">Favicon URL</label><input id="brandFaviconUrl" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="/favicon.ico"></div>
+              <div class="mt-4 flex flex-wrap gap-4">
+                <div class="flex flex-col gap-1.5 min-w-[5.5rem]">
+                  <span class="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Current (saved URL)</span>
+                  <div class="flex h-16 w-16 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/50">
+                    <img id="brandFaviconUrlPreviewImg" src="" alt="" class="max-h-12 max-w-12 object-contain hidden">
+                    <span id="brandFaviconUrlPreviewPlaceholder" class="text-[9px] text-slate-400 text-center leading-tight px-1.5">No URL yet</span>
+                  </div>
+                </div>
+                <div class="flex flex-col gap-1.5 min-w-[5.5rem]">
+                  <span class="text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">New file (not saved)</span>
+                  <div class="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-emerald-400/60 bg-emerald-50/60 dark:border-emerald-500/35 dark:bg-emerald-950/25">
+                    <img id="brandFaviconFilePreviewImg" alt="" class="max-h-12 max-w-12 object-contain hidden">
+                    <span id="brandFaviconFilePreviewPlaceholder" class="text-[9px] text-slate-400 text-center leading-tight px-1.5">Choose a file</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3">
+                <label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500 block mb-1">Upload favicon</label>
+                <input id="brandFaviconFile" type="file" accept=".ico,.png,.webp,.svg,.jpg,.jpeg" class="text-xs text-slate-700 max-w-xs file:mr-2 file:rounded file:border file:border-slate-300 file:bg-white file:px-2 file:py-1 dark:text-slate-400 dark:file:border-slate-600 dark:file:bg-slate-900">
+                <button type="button" id="uploadFaviconBtn" class="mt-2 px-3 py-2 rounded-lg bg-slate-200 text-slate-900 text-xs font-bold uppercase hover:bg-slate-300 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">Upload</button>
+              </div>
+            </div>
+            <div class="rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 dark:border-white/5 dark:bg-slate-950/30">
+              <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800 dark:text-emerald-300/90 mb-3">Logo</h3>
+              <p class="text-[11px] text-slate-600 dark:text-slate-500 mb-3">Shown in the header and on sign-in. Default: <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">/logo.svg</code>.</p>
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">Logo URL</label><input id="brandLogoUrl" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="/logo.svg"></div>
+              <div class="mt-4 flex flex-wrap gap-4">
+                <div class="flex flex-col gap-1.5 min-w-[7rem]">
+                  <span class="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Current (saved URL)</span>
+                  <div class="flex h-20 min-w-[7rem] max-w-[10rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-2 py-2 shadow-sm dark:border-white/10 dark:bg-slate-900/50">
+                    <img id="brandLogoUrlPreviewImg" src="" alt="" class="max-h-16 max-w-full object-contain hidden">
+                    <span id="brandLogoUrlPreviewPlaceholder" class="text-[9px] text-slate-400 text-center leading-tight px-1.5">No URL yet</span>
+                  </div>
+                </div>
+                <div class="flex flex-col gap-1.5 min-w-[7rem]">
+                  <span class="text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">New file (not saved)</span>
+                  <div class="flex h-20 min-w-[7rem] max-w-[10rem] items-center justify-center rounded-xl border border-dashed border-emerald-400/60 bg-emerald-50/60 px-2 py-2 dark:border-emerald-500/35 dark:bg-emerald-950/25">
+                    <img id="brandLogoFilePreviewImg" alt="" class="max-h-16 max-w-full object-contain hidden">
+                    <span id="brandLogoFilePreviewPlaceholder" class="text-[9px] text-slate-400 text-center leading-tight px-1.5">Choose a file</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3">
+                <label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500 block mb-1">Upload logo</label>
+                <input id="brandLogoFile" type="file" accept=".png,.webp,.svg,.jpg,.jpeg" class="text-xs text-slate-700 max-w-xs file:mr-2 file:rounded file:border file:border-slate-300 file:bg-white file:px-2 file:py-1 dark:text-slate-400 dark:file:border-slate-600 dark:file:bg-slate-900">
+                <button type="button" id="uploadLogoBtn" class="mt-2 px-3 py-2 rounded-lg bg-slate-200 text-slate-900 text-xs font-bold uppercase hover:bg-slate-300 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">Upload</button>
+              </div>
+            </div>
+          </div>
+          <button type="button" id="saveBrandingBtn" class="mt-6 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-widest">Save logo, icon &amp; title</button>
+        </div>
+      </div>
+
+      <div data-section-panel="setup" class="hidden space-y-6">
+        <div class="rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 p-6 dark:border-white/10 dark:bg-slate-900/50 dark:shadow-none">
+          <h2 class="text-xs font-black uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400 mb-2 flex items-center gap-2">
+            <img src="/integrations/jira.svg" alt="" class="h-5 w-5 shrink-0 object-contain opacity-90 dark:brightness-0 dark:invert" width="20" height="20">
+            <span>Jira (required)</span>
+          </h2>
+          <p class="text-xs text-slate-600 dark:text-slate-500 mb-4">Written to <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">Product/.env</code>. Blank secret fields keep the value already on disk. Saved tokens stay masked in the form—edit the field only when you intend to replace a value. <strong class="text-slate-700 dark:text-slate-300">How many sprints to export</strong> is set per project under <strong class="text-slate-700 dark:text-slate-300">Projects</strong>.</p>
+          <div class="grid md:grid-cols-2 gap-4 text-sm">
+            <div class="md:col-span-2"><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">JIRA_DOMAIN</label><input id="env_JIRA_DOMAIN" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500" placeholder="your-site.atlassian.net"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">JIRA_EMAIL</label><input id="env_JIRA_EMAIL" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">JIRA_TOKEN</label><input id="env_JIRA_TOKEN" type="password" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+          </div>
+          <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 mt-6 mb-2">Optional Jira custom fields (global fallback)</h3>
+          <p class="text-[11px] text-slate-600 dark:text-slate-500 mb-3">Defaults are discovered from Jira when empty. Per-project overrides (including work classification) live in each row under <strong class="text-slate-700 dark:text-slate-300">Projects → details</strong>.</p>
+          <div class="grid md:grid-cols-2 gap-4 text-sm">
+            <div class="md:col-span-2"><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">JIRA_WORK_CLASSIFICATION_FIELD_ID</label><input id="env_JIRA_WORK_CLASSIFICATION_FIELD_ID" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="customfield_… or comma-separated"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">JIRA_ACTUAL_STORY_POINTS_FIELD_ID</label><input id="env_JIRA_ACTUAL_STORY_POINTS_FIELD_ID" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">JIRA_QA_POINTS_FIELD_ID</label><input id="env_JIRA_QA_POINTS_FIELD_ID" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">JIRA_QA_ASSIGNEE_FIELD_ID</label><input id="env_JIRA_QA_ASSIGNEE_FIELD_ID" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+          </div>
+          <div class="mt-6 flex flex-col gap-3 max-w-4xl">
+            <div class="flex flex-wrap gap-3 items-center">
+              <button type="button" id="saveJiraSetupBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-widest">Save Jira settings</button>
+              <button type="button" id="testJiraBtn" class="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800 text-xs font-black uppercase tracking-widest">Test Jira</button>
+            </div>
+          </div>
+          <pre id="jiraTestOut" class="mt-4 p-3 rounded-xl bg-slate-100 border border-slate-200 text-[11px] text-slate-700 whitespace-pre-wrap font-mono min-h-[3rem] hidden dark:bg-slate-950/80 dark:border-slate-800 dark:text-slate-400">—</pre>
+        </div>
+      </div>
+
+      <div data-section-panel="connectors" class="hidden space-y-6">
+        <div class="rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 p-6 dark:border-white/10 dark:bg-slate-900/50 dark:shadow-none">
+          <h2 class="text-xs font-black uppercase tracking-[0.2em] text-sky-700 dark:text-sky-400 mb-2">Optional connectors</h2>
+          <p class="text-xs text-slate-600 dark:text-slate-500 mb-4">Toggles are stored in <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">data/connectors.json</code>. The export pipeline only pulls data for <strong class="text-slate-800 dark:text-slate-400">enabled</strong> connectors. Jira is always on.</p>
+          <div class="space-y-2 text-sm mb-6 text-slate-800 dark:text-slate-200">
+            <label class="flex items-center gap-3 cursor-pointer py-0.5">
+              <input type="checkbox" id="conn_confluence" class="rounded border-slate-400 text-sky-600 bg-white dark:border-slate-600 dark:bg-slate-900 shrink-0">
+              <img src="/integrations/confluence.svg" alt="" class="h-5 w-5 shrink-0 object-contain opacity-90 dark:brightness-0 dark:invert" width="20" height="20">
+              <span>Confluence</span> <span class="text-[10px] text-slate-600 dark:text-slate-500">(same Jira token)</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer py-0.5">
+              <input type="checkbox" id="conn_github" class="rounded border-slate-400 text-sky-600 bg-white dark:border-slate-600 dark:bg-slate-900 shrink-0">
+              <img src="/integrations/github.svg" alt="" class="h-5 w-5 shrink-0 object-contain opacity-90 dark:brightness-0 dark:invert" width="20" height="20">
+              <span>GitHub</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer py-0.5 pl-6">
+              <input type="checkbox" id="conn_copilot" class="rounded border-slate-400 text-sky-600 bg-white dark:border-slate-600 dark:bg-slate-900 shrink-0">
+              <img src="/integrations/githubcopilot.svg" alt="" class="h-5 w-5 shrink-0 object-contain opacity-90 dark:brightness-0 dark:invert" width="20" height="20">
+              <span>GitHub Copilot metrics</span> <span class="text-[10px] text-slate-600 dark:text-slate-500">(needs GITHUB_TOKEN + ENT)</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer py-0.5">
+              <input type="checkbox" id="conn_cursor" class="rounded border-slate-400 text-sky-600 bg-white dark:border-slate-600 dark:bg-slate-900 shrink-0">
+              <img src="/integrations/cursor.svg" alt="" class="h-5 w-5 shrink-0 object-contain opacity-90 dark:brightness-0 dark:invert" width="20" height="20">
+              <span>Cursor analytics</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer py-0.5">
+              <input type="checkbox" id="conn_testrail" class="rounded border-slate-400 text-sky-600 bg-white dark:border-slate-600 dark:bg-slate-900 shrink-0">
+              <img src="/integrations/testrail.svg" alt="" class="h-5 w-5 shrink-0 object-contain opacity-90 dark:brightness-0 dark:invert" width="20" height="20">
+              <span>TestRail</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer py-0.5">
+              <input type="checkbox" id="conn_openrouter" class="rounded border-slate-400 text-sky-600 bg-white dark:border-slate-600 dark:bg-slate-900 shrink-0">
+              <img src="/integrations/openrouter.svg" alt="" class="h-5 w-5 shrink-0 object-contain text-slate-800 dark:text-slate-200" width="20" height="20">
+              <span>OpenRouter</span> <span class="text-[10px] text-slate-600 dark:text-slate-500">(LLM features)</span>
+            </label>
+          </div>
+          <button type="button" id="saveConnectorsBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-widest">Save connector toggles</button>
+
+          <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-500 mt-8 mb-3">Credentials</h3>
+          <p class="text-[11px] text-slate-600 dark:text-slate-500 mb-3">Tokens stay masked; leave a field blank to keep the value already on disk.</p>
+          <div class="grid md:grid-cols-2 gap-4 text-sm">
+            <div data-cred-panel="github" class="hidden md:col-span-2 grid md:grid-cols-2 gap-4 md:col-span-2">
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">GITHUB_TOKEN</label><input id="env_GITHUB_TOKEN" type="password" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">ORG</label><input id="env_ORG" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            </div>
+            <div data-cred-panel="copilot" class="hidden md:col-span-2">
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">ENT (enterprise slug)</label><input id="env_ENT" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            </div>
+            <div data-cred-panel="cursor" class="hidden md:col-span-2">
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">CURSOR_TOKEN</label><input id="env_CURSOR_TOKEN" type="password" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            </div>
+            <div data-cred-panel="testrail" class="hidden md:col-span-2 grid md:grid-cols-2 gap-4 md:col-span-2">
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">TESTRAIL_DOMAIN</label><input id="env_TESTRAIL_DOMAIN" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">TESTRAIL_EMAIL</label><input id="env_TESTRAIL_EMAIL" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+              <div class="md:col-span-2"><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">TESTRAIL_API_KEY</label><input id="env_TESTRAIL_API_KEY" type="password" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            </div>
+            <div data-cred-panel="openrouter" class="hidden md:col-span-2">
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">OPENROUTER_API_KEY</label><input id="env_OPENROUTER_API_KEY" type="password" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            </div>
+          </div>
+          <div class="mt-6 flex flex-col gap-3 max-w-4xl">
+            <div class="flex flex-wrap gap-3 items-center">
+              <button type="button" id="saveConnectorCredsBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-widest">Save connector credentials</button>
+              <button type="button" id="testConnectorsBtn" class="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800 text-xs font-black uppercase tracking-widest">Test enabled connectors</button>
+            </div>
+          </div>
+          <pre id="connectorTestResults" class="mt-4 p-4 rounded-xl bg-slate-100 border border-slate-200 text-[11px] text-slate-700 whitespace-pre-wrap font-mono min-h-[4rem] dark:bg-slate-950/80 dark:border-slate-800 dark:text-slate-400">—</pre>
+        </div>
+      </div>
+
+      <div data-section-panel="security" class="hidden space-y-6">
+        <div class="rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 p-6 max-w-3xl dark:border-white/10 dark:bg-slate-900/50 dark:shadow-none">
+          <h2 class="text-xs font-black uppercase tracking-[0.2em] text-teal-700 dark:text-teal-400 mb-2">HTTPS / SSL</h2>
+          <p class="text-xs text-slate-600 dark:text-slate-500 mb-4">Upload your certificate chain and private key (PEM). Files are stored under <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">Product/ssl/</code> as <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">server.key</code> and <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">server.crt</code>, and <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">USE_HTTPS=1</code> plus paths are written to <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">Product/.env</code>. You can also set <strong class="text-slate-700 dark:text-slate-300">USE_HTTPS</strong>, <strong class="text-slate-700 dark:text-slate-300">PUBLIC_BASE_URL</strong>, <strong class="text-slate-700 dark:text-slate-300">PORT</strong>, and paths under <strong class="text-slate-700 dark:text-slate-300">Platform</strong> without SSH. After any change, restart the Node process (e.g. <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">pm2 restart all</code> on the host) so TLS and listeners reload.</p>
+          <div class="flex flex-wrap gap-6 items-end">
+            <div>
+              <label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500 block mb-1">Certificate (.crt / .pem)</label>
+              <input id="sslCertFile" type="file" accept=".pem,.crt,.cer" class="text-xs text-slate-700 max-w-xs file:mr-2 file:rounded file:border file:border-slate-300 file:bg-white file:px-2 file:py-1 dark:text-slate-400 dark:file:border-slate-600 dark:file:bg-slate-900">
+            </div>
+            <div>
+              <label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500 block mb-1">Private key (.key / .pem)</label>
+              <input id="sslKeyFile" type="file" accept=".pem,.key" class="text-xs text-slate-700 max-w-xs file:mr-2 file:rounded file:border file:border-slate-300 file:bg-white file:px-2 file:py-1 dark:text-slate-400 dark:file:border-slate-600 dark:file:bg-slate-900">
+            </div>
+            <button type="button" id="uploadSslBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-widest">Upload &amp; configure .env</button>
+          </div>
+        </div>
+      </div>
+
+      <div data-section-panel="general" class="hidden space-y-6">
+        <div class="rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 p-6 dark:border-white/10 dark:bg-slate-900/50 dark:shadow-none">
+          <h2 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-700 dark:text-indigo-400 mb-4">Platform &amp; SSO</h2>
+          <p class="text-xs text-slate-600 dark:text-slate-500 mb-4">Auth, optional Microsoft Entra (Azure AD), session, URLs, port, and HTTPS flags. Default is <strong class="text-slate-700 dark:text-slate-300">local</strong> username/password. Microsoft SSO uses <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">AUTH_MODE=azure</code> (shown automatically once Entra Client ID, Tenant, and Secret are set). Use <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">ALLOW_LOCAL_LOGIN=1</code> to keep username/password alongside Microsoft. All values are saved to <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">Product/.env</code> (canonical). After changing auth, session, URL, port, or TLS, save and restart the Node process on the host (see the green notice). Secret fields stay masked; leave blank to keep the saved value.</p>
+          <div class="grid md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">AUTH_MODE</label>
+              <input id="env_AUTH_MODE" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="local or azure (azure when Entra is complete)">
+              <p class="text-[11px] text-slate-600 dark:text-slate-500 mt-1 leading-relaxed"><strong class="text-slate-700 dark:text-slate-300">Microsoft Entra (Azure AD)</strong> is <code class="text-[10px] font-mono bg-slate-100 px-1 rounded dark:bg-slate-800">azure</code>. When Client ID, Tenant, and Secret are all set, this field switches to <code class="text-[10px] font-mono bg-slate-100 px-1 rounded dark:bg-slate-800">azure</code> so it matches your configuration. Set <code class="text-[10px] font-mono bg-slate-100 px-1 rounded dark:bg-slate-800">ALLOW_LOCAL_LOGIN=1</code> to keep both Microsoft and username/password on the login page.</p>
+            </div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">ALLOW_LOCAL_LOGIN</label><input id="env_ALLOW_LOCAL_LOGIN" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="0 or 1"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">PUBLIC_BASE_URL</label><input id="env_PUBLIC_BASE_URL" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">REDIRECT_URI</label><input id="env_REDIRECT_URI" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">POST_LOGOUT_REDIRECT_URI</label><input id="env_POST_LOGOUT_REDIRECT_URI" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">AZURE_CLIENT_ID</label><input id="env_AZURE_CLIENT_ID" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">AZURE_TENANT_ID</label><input id="env_AZURE_TENANT_ID" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">AZURE_CLIENT_SECRET</label><input id="env_AZURE_CLIENT_SECRET" type="password" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="secret"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">SESSION_SECRET</label><input id="env_SESSION_SECRET" type="password" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">PORT</label><input id="env_PORT" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">USE_HTTPS</label><input id="env_USE_HTTPS" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="0 or 1"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">SSL_KEY_PATH</label><input id="env_SSL_KEY_PATH" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="ssl/server.key"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">SSL_CERT_PATH</label><input id="env_SSL_CERT_PATH" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="ssl/server.crt"></div>
+            <div class="md:col-span-2 rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-950/40">
+              <p class="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">Process manager (PM2)</p>
+              <p class="text-[11px] text-slate-600 dark:text-slate-500 mb-3">If you run the web app under <strong class="text-slate-700 dark:text-slate-300">PM2</strong>, set the name to match <code class="text-[10px] font-mono bg-slate-200/80 px-1 rounded dark:bg-slate-800">pm2 start … --name …</code>. After saving platform settings, restart the process on the host (see the green notice after save)—the in-browser restart control is disabled in this build.</p>
+              <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">PM2_WEB_PROCESS_NAME</label><input id="env_PM2_WEB_PROCESS_NAME" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="velosync-web" autocomplete="off"></div>
+            </div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">ALLOW_INSECURE_TLS</label><input id="env_ALLOW_INSECURE_TLS" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="0 or 1"></div>
+          </div>
+          <div class="mt-6 flex flex-col gap-3 max-w-4xl">
+            <div class="flex flex-wrap gap-3 items-center">
+              <button type="button" id="saveEnvBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-widest">Save platform .env</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-600 dark:text-slate-500 max-w-2xl">By default, <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">AUTH_MODE</code> is <strong class="text-slate-700 dark:text-slate-300">local</strong> (username/password only). Use <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">AUTH_MODE=azure</code> for Microsoft sign-in, and optionally <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">ALLOW_LOCAL_LOGIN=1</code> to keep both buttons on the login page. Bootstrap <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">admin</code> / <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">admin</code> is created when no local users exist and local login is allowed.</p>
+
+        <div id="localPasswordCard" class="hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 p-6 dark:border-white/10 dark:bg-slate-900/50 dark:shadow-none">
+          <h2 class="text-xs font-black uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400 mb-4">Change your password</h2>
+          <div class="grid md:grid-cols-2 gap-4 max-w-xl">
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">Current</label><input id="pwCurrent" type="password" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+            <div><label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">New (min 8)</label><input id="pwNew" type="password" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></div>
+          </div>
+          <button type="button" id="changePwBtn" class="mt-4 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-black uppercase tracking-widest">Update password</button>
+        </div>
+      </div>
+
+      <div data-section-panel="projects" class="hidden space-y-6">
+        <div class="rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 p-6 overflow-x-hidden dark:border-white/10 dark:bg-slate-900/50 dark:shadow-none">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xs font-black uppercase tracking-[0.2em] text-cyan-800 dark:text-cyan-400">projects.json</h2>
+            <div class="flex gap-2">
+              <button type="button" id="addProjectBtn" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold uppercase text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800">Add row</button>
+              <button type="button" id="saveProjectsBtn" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-black uppercase text-white">Save</button>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-600 dark:text-slate-500 mb-3 max-w-4xl">Each row shows <strong class="text-slate-700 dark:text-slate-300">Key, Name, Board, Type</strong> at a glance. Click the row or the arrow to edit <strong class="text-slate-700 dark:text-slate-300">sprints to export, stages, sprint filters, TestRail, WC field, full overwrite</strong>, and more.</p>
+          <table class="w-full table-fixed text-left text-xs text-slate-800 dark:text-slate-200">
+            <thead><tr class="text-slate-600 dark:text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-white/10">
+              <th class="p-2 w-10 align-middle" scope="col"><span class="sr-only">Details</span></th>
+              <th class="p-2 w-11 whitespace-nowrap align-middle" scope="col" title="Include in export">On</th>
+              <th class="p-2 w-[4.25rem] align-middle" scope="col">Key</th>
+              <th class="p-2 align-middle" scope="col">Name</th>
+              <th class="p-2 w-[4.5rem] align-middle" scope="col" title="Agile board ID">Board</th>
+              <th class="p-2 w-[5.5rem] align-middle" scope="col" title="e.g. kanban">Type</th>
+              <th class="p-2 w-[4.5rem] text-center align-middle" scope="col" title="Test board or remove row"><span class="sr-only">Actions</span></th>
+            </tr></thead>
+            <tbody id="projectsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div data-section-panel="users" class="hidden space-y-6">
+        <div class="rounded-xl border border-slate-200/90 bg-slate-50/90 px-4 py-3 text-xs text-slate-700 dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-300">
+          <p class="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">How this page works</p>
+          <p id="usersAuthSummaryBody" class="leading-relaxed text-slate-800 dark:text-slate-200">—</p>
+        </div>
+        <div id="rbacAzurePanel" class="rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 p-6 dark:border-white/10 dark:bg-slate-900/50 dark:shadow-none">
+          <h2 class="text-xs font-black uppercase tracking-[0.2em] text-violet-700 dark:text-violet-400 mb-2 flex items-center gap-2">
+            <img src="/integrations/microsoft.svg" alt="" class="h-5 w-5 shrink-0 object-contain opacity-90 dark:brightness-0 dark:invert" width="20" height="20">
+            <span>Microsoft admin names</span>
+          </h2>
+          <p class="text-xs text-slate-600 dark:text-slate-500 mb-4">One display name per line. Fuzzy-matched to Microsoft sign-in. (Hidden when using local-only auth.)</p>
+          <textarea id="rbacAdminNames" rows="12" class="w-full rounded-xl bg-white border border-slate-300 text-slate-900 px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-violet-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"></textarea>
+          <button type="button" id="saveRbacBtn" class="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-widest">Save RBAC</button>
+        </div>
+        <div id="rbacLocalPanel" class="hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 p-6 dark:border-white/10 dark:bg-slate-900/50 dark:shadow-none">
+          <h2 class="text-xs font-black uppercase tracking-[0.2em] text-violet-700 dark:text-violet-400 mb-4">Local accounts</h2>
+          <p class="text-xs text-slate-600 dark:text-slate-500 mb-4">Used for username/password sign-in (<code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">AUTH_MODE=local</code>, <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">ALLOW_LOCAL_LOGIN=1</code>, or Azure not configured yet). Accounts live in <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">rbac.json</code>; if the file is missing and local sign-in is allowed, the server creates it on startup with a bootstrap <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">admin</code> user (change the password after first login).</p>
+          <table class="w-full text-left text-xs mb-6 text-slate-800 dark:text-slate-200">
+            <thead><tr class="text-slate-600 dark:text-slate-500 border-b border-slate-200 dark:border-white/10"><th class="p-2">User</th><th class="p-2">Role</th><th class="p-2">Display</th><th class="p-2"></th></tr></thead>
+            <tbody id="localUsersBody"></tbody>
+          </table>
+          <div class="grid md:grid-cols-4 gap-3 max-w-4xl border-t border-slate-200 dark:border-white/10 pt-6">
+            <input id="newLocalUsername" placeholder="username" class="rounded-lg bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100">
+            <input id="newLocalPassword" type="password" placeholder="initial password" class="rounded-lg bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100">
+            <select id="newLocalRole" class="rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"><option value="viewer">viewer</option><option value="admin">admin</option></select>
+            <input id="newLocalDisplay" placeholder="display name" class="rounded-lg bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100">
+          </div>
+          <button type="button" id="addLocalUserBtn" class="mt-3 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-black uppercase tracking-widest">Add user</button>
+        </div>
+      </div>
+
+      <div data-section-panel="scoring" class="hidden space-y-6">
+        <div class="rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 p-6 dark:border-white/10 dark:bg-slate-900/50 dark:shadow-none">
+          <h2 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-800 dark:text-indigo-300 mb-1">Configure weights</h2>
+          <p class="text-xs text-slate-600 dark:text-slate-500 mb-2">Health Matrix, <strong class="text-slate-800 dark:text-slate-300">devData</strong>, and <strong class="text-slate-800 dark:text-slate-300">qaData</strong> are loaded from the server on each dashboard load. <strong class="text-slate-800 dark:text-slate-300">Save scoring config</strong> writes the normalized values to <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">jira-md-export/Template/dashboard-scoring.template.json</code> immediately. An optional <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">jira-md-export/dashboard-scoring.json</code> can still supply local overrides if you add keys there by hand; Admin save clears that file so the template stays authoritative. Legacy main/detail split keys are merged when read.</p>
+          <p id="scoringFileHint" class="text-[11px] font-mono text-slate-600 dark:text-slate-400 mb-6 min-h-[1.25rem]">—</p>
+          <div id="scoringFormMount" class="space-y-8 max-w-3xl"></div>
+          <div class="mt-8 flex flex-wrap gap-3 items-center">
+            <button type="button" id="saveDashboardScoringBtn" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-widest">Save scoring config</button>
+            <button type="button" id="reloadDashboardScoringBtn" class="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800 text-xs font-black uppercase tracking-widest">Reload</button>
+          </div>
+        </div>
+      </div>
+
+      <div data-section-panel="data-sync" class="hidden space-y-6">
+        <div class="rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 p-6 max-w-3xl dark:border-white/10 dark:bg-slate-900/50 dark:shadow-none">
+          <h2 class="text-xs font-black uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200 mb-1">Data Sync Job (jira-md-export)</h2>
+          <p class="text-xs text-slate-600 dark:text-slate-500 mb-4">You can install this Product <strong class="text-slate-700 dark:text-slate-300">anywhere on disk</strong>; paths below are <strong class="text-slate-700 dark:text-slate-300">relative to the Product folder</strong> (the one that contains <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">server.js</code>). The job runs <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">jira-md-export/index.js</code> on a <strong class="text-slate-700 dark:text-slate-300">PM2 cron</strong> schedule and reads <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">Product/.env</code>, <code class="text-slate-800 bg-slate-100 px-1 rounded dark:text-slate-400 dark:bg-transparent">jira-md-export/projects.json</code>, and connector settings each run. After you save platform secrets, projects, or connectors, the server asks PM2 to <strong class="text-slate-700 dark:text-slate-300">restart</strong> this process (when enabled) so the next run sees fresh files.</p>
+          <p id="dsjPm2Hint" class="text-[11px] font-mono text-slate-700 dark:text-slate-400 mb-4 min-h-[1.25rem]">—</p>
+          <div class="space-y-4 text-sm max-w-xl">
+            <label class="flex items-center gap-2 cursor-pointer text-slate-800 dark:text-slate-200">
+              <input type="checkbox" id="dsjEnabled" class="rounded border-slate-400 text-emerald-600 bg-white dark:border-slate-600 dark:bg-slate-900">
+              <span class="text-xs font-bold uppercase tracking-wider">Enable PM2 scheduled job</span>
+            </label>
+            <div>
+              <label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">PM2 process name</label>
+              <input id="dsjProcessName" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-slate-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="velosync-data-sync">
+            </div>
+            <div>
+              <label class="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-500">Cron (5 fields, server local time)</label>
+              <input id="dsjCron" class="mt-1 w-full rounded-lg bg-white border border-slate-300 text-slate-900 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-slate-500/30 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100" placeholder="0 * * * *">
+              <p class="text-[10px] text-slate-500 dark:text-slate-500 mt-1">Example: <code class="text-slate-700 dark:text-slate-400">0 * * * *</code> hourly; <code class="text-slate-700 dark:text-slate-400">0 2 * * *</code> daily at 02:00. See <a href="https://crontab.guru" class="text-sky-700 hover:underline dark:text-sky-400" target="_blank" rel="noopener">crontab.guru</a>.</p>
+            </div>
+          </div>
+          <div class="mt-6 flex flex-col gap-3">
+            <div class="flex flex-wrap gap-3 items-center">
+              <button type="button" id="saveDataSyncJobBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-widest">Save &amp; apply to PM2</button>
+              <button type="button" id="restartDataSyncJobBtn" class="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800 text-xs font-black uppercase tracking-widest">Restart job now</button>
+            </div>
+            <p class="text-[10px] text-slate-500 dark:text-slate-500">Requires <code class="text-slate-700 dark:text-slate-400">pm2</code> on PATH (<code class="text-slate-700 dark:text-slate-400">npm i -g pm2</code>). PM2 is started with <code class="text-slate-700 dark:text-slate-400">cwd</code> = Product root and a <strong class="text-slate-600 dark:text-slate-400">relative</strong> script path. Saving writes <code class="text-slate-700 dark:text-slate-400">data/data-sync-job.json</code> and <code class="text-slate-700 dark:text-slate-400">ecosystem.data-sync.config.cjs</code> (portable <code class="text-slate-700 dark:text-slate-400">__dirname</code>-based paths).</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <!-- Setup wizard (guided onboarding) -->
+  <div id="setupWizardOverlay" class="hidden fixed inset-0 z-[200]" role="dialog" aria-modal="true" aria-labelledby="wizardTitle">
+    <button type="button" id="wizardBackdrop" class="absolute inset-0 bg-slate-950/80 backdrop-blur-md border-0 cursor-default" aria-label="Close wizard"></button>
+    <div class="relative z-10 flex min-h-full items-center justify-center p-3 sm:p-6 pointer-events-none">
+      <div class="pointer-events-auto flex w-full max-w-[34rem] max-h-[min(92vh,52rem)] flex-col overflow-hidden rounded-3xl border border-white/20 bg-white/95 shadow-[0_24px_80px_-12px_rgba(0,0,0,0.45)] dark:border-white/10 dark:bg-slate-900/95 dark:shadow-black/60">
+        <div class="shrink-0 flex items-start justify-between gap-3 border-b border-slate-200/90 bg-gradient-to-r from-indigo-50/90 via-white to-violet-50/80 px-5 py-4 dark:from-indigo-950/50 dark:via-slate-900 dark:to-violet-950/40 dark:border-white/10">
+          <div class="min-w-0">
+            <p class="text-[9px] font-black uppercase tracking-[0.35em] text-indigo-600 dark:text-indigo-300">VeloSync</p>
+            <h2 id="wizardTitle" class="mt-1 text-lg font-black tracking-tight text-slate-900 dark:text-white">Setup wizard</h2>
+            <p id="wizardSubtitle" class="mt-0.5 text-xs text-slate-600 dark:text-slate-400 leading-snug">—</p>
+          </div>
+          <button type="button" id="wizardCloseBtn" class="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" aria-label="Close wizard">✕</button>
+        </div>
+        <div id="wizardProgress" class="shrink-0 px-5 pt-3 pb-1"></div>
+        <div id="wizardBody" class="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-sm text-slate-700 dark:text-slate-300"></div>
+        <div class="shrink-0 flex flex-col gap-3 border-t border-slate-200/90 bg-slate-50/80 px-5 py-4 dark:border-white/10 dark:bg-slate-950/60 sm:flex-row sm:items-center sm:justify-between">
+          <button type="button" id="wizardEditSectionBtn" class="order-2 sm:order-1 w-full sm:w-auto rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-indigo-800 hover:bg-indigo-100 dark:border-indigo-500/40 dark:bg-indigo-950/50 dark:text-indigo-200 dark:hover:bg-indigo-900/50">Open settings panel</button>
+          <div class="order-1 sm:order-2 flex w-full sm:w-auto gap-2 justify-end">
+            <button type="button" id="wizardPrevBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">Back</button>
+            <button type="button" id="wizardNextBtn" class="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-md shadow-indigo-500/25 hover:brightness-110 dark:from-indigo-500 dark:to-violet-600">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="max-w-[1600px] mx-auto px-4 pb-8 pt-2 text-center border-t border-slate-200/80 dark:border-white/10">
+    <a href="/whats-new" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold uppercase tracking-wider text-sky-700 hover:text-sky-600 hover:underline dark:text-sky-400 dark:hover:text-sky-300">What&rsquo;s new?</a>
+    <span class="text-slate-400 dark:text-slate-600 text-[10px] mx-2" aria-hidden="true">&middot;</span>
+    <span class="text-[10px] text-slate-500 dark:text-slate-500">Release notes</span>
+  </footer>
+  <script src="../js/apply-branding.js" defer></script>
+  <script src="admin-settings.js"></script>
+</body>
+</html>

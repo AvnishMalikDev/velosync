@@ -1,0 +1,197 @@
+/**
+ * JIRA Board Analyzer (Explore) — light theme, same localStorage key as main dashboard.
+ * Loaded after explore-style.css; only rules under html.theme-light apply.
+ */
+
+html.theme-light body {
+    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+    color: #0f172a;
+}
+
+html.theme-light .card {
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+html.theme-light .card:hover {
+    background: #ffffff;
+    border-color: rgba(59, 130, 246, 0.25);
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.1);
+}
+
+html.theme-light .kpi-label {
+    color: #64748b;
+}
+html.theme-light .kpi-value {
+    color: #0f172a;
+}
+html.theme-light .kpi-sub {
+    color: #475569;
+}
+
+html.theme-light .chart-title {
+    color: #0f172a;
+}
+html.theme-light .chart-subtitle {
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+}
+
+html.theme-light .tbl-th {
+    color: #0f172a;
+    background: #f1f5f9;
+    border-bottom-color: #e2e8f0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+html.theme-light .tbl-td {
+    color: #334155;
+    border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+html.theme-light .tbl-td.key-cell {
+    color: #1d4ed8;
+}
+
+html.theme-light .loader-overlay {
+    background: rgba(248, 250, 252, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+html.theme-light .loader-step {
+    color: #334155;
+}
+html.theme-light .progress-track {
+    background: #e2e8f0;
+}
+html.theme-light .loader-detail {
+    color: #64748b;
+}
+html.theme-light .loader-percent {
+    color: #475569;
+}
+
+html.theme-light .days-dropdown-trigger {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #0f172a;
+}
+html.theme-light .days-dropdown-trigger:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+}
+html.theme-light .days-dropdown.open .days-dropdown-trigger {
+    background: #f8fafc;
+    border-color: #3b82f6;
+}
+html.theme-light .days-dropdown-menu {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+html.theme-light .days-dropdown-num {
+    color: #0f172a;
+}
+html.theme-light .days-dropdown-text {
+    color: #64748b;
+}
+
+html.theme-light ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+}
+html.theme-light ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Tailwind utilities used in SearchJira.html */
+html.theme-light .border-slate-800\/50 {
+    border-color: rgba(148, 163, 184, 0.45) !important;
+}
+html.theme-light .bg-slate-800\/80 {
+    background-color: #f1f5f9 !important;
+}
+html.theme-light .hover\:bg-slate-700:hover {
+    background-color: #e2e8f0 !important;
+}
+html.theme-light .border-slate-700\/70 {
+    border-color: #cbd5e1 !important;
+}
+html.theme-light a.text-slate-300 {
+    color: #334155 !important;
+}
+html.theme-light a.hover\:text-white:hover {
+    color: #0f172a !important;
+}
+html.theme-light a svg {
+    color: #475569;
+}
+html.theme-light .text-white {
+    color: #0f172a !important;
+}
+html.theme-light .bg-slate-900\/80 {
+    background-color: #ffffff !important;
+}
+html.theme-light input.text-white,
+html.theme-light input.mono {
+    color: #0f172a !important;
+}
+html.theme-light button.analyze-btn,
+html.theme-light .analyze-btn.text-white {
+    color: #ffffff !important;
+}
+html.theme-light .placeholder-slate-600::placeholder {
+    color: #94a3b8 !important;
+}
+html.theme-light .text-red-400 {
+    color: #b91c1c !important;
+}
+html.theme-light .text-purple-400 {
+    color: #7c3aed !important;
+}
+html.theme-light .text-emerald-400 {
+    color: #047857 !important;
+}
+html.theme-light .text-blue-400 {
+    color: #1d4ed8 !important;
+}
+html.theme-light .text-amber-400 {
+    color: #b45309 !important;
+}
+html.theme-light .text-cyan-400 {
+    color: #0e7490 !important;
+}
+html.theme-light .text-indigo-400 {
+    color: #4338ca !important;
+}
+html.theme-light .text-orange-400 {
+    color: #c2410c !important;
+}
+html.theme-light .text-slate-500 {
+    color: #475569 !important;
+}
+html.theme-light .text-slate-600 {
+    color: #334155 !important;
+}
+
+/* Header subtitle pill "JIRA Board Analyzer" (blue on blue) —
+   needs a readable background and stronger ink in light mode. */
+html.theme-light .bg-blue-950\/30 {
+    background-color: rgba(219, 234, 254, 0.9) !important;
+}
+html.theme-light .border-blue-900\/30 {
+    border-color: rgba(147, 197, 253, 0.8) !important;
+}
+
+/* Other accent pill backgrounds/borders that may appear in cards */
+html.theme-light .bg-purple-950\/30    { background-color: rgba(237, 233, 254, 0.9) !important; }
+html.theme-light .border-purple-900\/30 { border-color: rgba(196, 181, 253, 0.8) !important; }
+html.theme-light .bg-emerald-950\/30    { background-color: rgba(209, 250, 229, 0.9) !important; }
+html.theme-light .border-emerald-900\/30 { border-color: rgba(110, 231, 183, 0.75) !important; }
+html.theme-light .bg-amber-950\/30      { background-color: rgba(254, 243, 199, 0.9) !important; }
+html.theme-light .border-amber-900\/30  { border-color: rgba(252, 211, 77, 0.75) !important; }
+html.theme-light .bg-red-950\/40        { background-color: rgba(254, 226, 226, 0.9) !important; }
+html.theme-light .border-red-500\/30    { border-color: rgba(239, 68, 68, 0.4) !important; }

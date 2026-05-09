@@ -1,0 +1,6 @@
+{
+  "_comment": "JIRA display name -> GitHub login. See github-users.README.md. Keys starting with _ are ignored.",
+  "_example_full_name": "Jane Doe",
+  "_example_contractor": "Jane Doe (c)",
+  "_example_login_value": "jane-doe-acme"
+}

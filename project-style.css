@@ -1,0 +1,584 @@
+body { 
+    background: radial-gradient(circle at top right, #0f172a, #05070a);
+    min-height: 100vh;
+}
+
+/* SSO user name — not Tailwind `text-white` (light theme strip is white; see project-detail-light.css) */
+body.pd-page #ssoUserName,
+body.pd-page .pd-sso-user-name {
+    color: #f8fafc;
+}
+
+/* --- GLASS CARD WITH 3D ZOOM --- */
+.card { 
+    background: rgba(15, 23, 42, 0.4); 
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border-radius: 28px; 
+    padding: 2rem; 
+    border: 1px solid rgba(255, 255, 255, 0.08); 
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); /* Smooth spring motion */
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hover Effect: Zoom + Glow + 3D Tilt */
+.card:hover {
+    transform: translateY(-10px) scale(1.02) rotateX(2deg) rotateY(1deg);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 20px rgba(59, 130, 246, 0.1);
+    background: rgba(15, 23, 42, 0.6);
+}
+
+/* Glass Shine Effect on Hover */
+.card::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg, 
+        transparent, 
+        rgba(255,255,255,0.03), 
+        transparent
+    );
+    transform: rotate(45deg);
+    transition: 0.8s;
+    pointer-events: none;
+}
+
+.card:hover::after {
+    left: 100%;
+    top: 100%;
+}
+
+/* Table Enhancements */
+tr { 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03); 
+    transition: all 0.3s ease; 
+}
+tr:hover { 
+    background: rgba(59, 130, 246, 0.08); 
+    transform: scale(1.005);
+}
+
+/* --- DUAL COLOR RANGE SLIDER --- */
+.custom-slider::-webkit-slider-thumb {
+    appearance: none;
+    pointer-events: auto;
+    width: 22px;
+    height: 22px;
+    border: 4px solid #05070a;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Left Handle: Blue */
+.start-handle::-webkit-slider-thumb {
+    background: #3b82f6;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+}
+
+/* Right Handle: Emerald */
+.end-handle::-webkit-slider-thumb {
+    background: #10b981;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+}
+
+.custom-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+    filter: brightness(1.2);
+}
+
+#rangeStart { z-index: 5; }
+#rangeEnd { z-index: 6; }
+
+/* Track stays 100% width; range inputs extended by thumb radius (11px) each side so thumb centers align with first/last tick */
+.slider-track-outer {
+    overflow: visible;
+}
+.slider-range-input {
+    width: calc(100% + 22px);
+    left: -11px;
+    top: 0;
+    height: 8px;
+}
+/* Slider and labels share same width so tick positions align with track */
+.slider-wrapper {
+    overflow: visible;
+}
+
+#sliderLabels {
+    overflow: visible;
+    padding: 0 4px;
+    min-height: 3.5rem;
+}
+
+.tick-mark {
+    position: absolute;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 90px;
+    min-width: 0;
+}
+
+.tick-mark:first-child {
+    transform: translateX(0);
+    align-items: flex-start;
+}
+.tick-mark:first-child .tick-text,
+.tick-mark:first-child .tick-sprint {
+    text-align: left;
+}
+
+.tick-mark:last-child {
+    transform: translateX(-100%);
+    align-items: flex-end;
+}
+.tick-mark:last-child .tick-text,
+.tick-mark:last-child .tick-sprint {
+    text-align: right;
+}
+
+.tick-line {
+    width: 2px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    margin-bottom: 4px;
+    flex-shrink: 0;
+}
+
+.tick-text {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #475569;
+    font-weight: 700;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.tick-sprint {
+    font-size: 8px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-top: 2px;
+    max-width: 88px;
+    text-align: center;
+    line-height: 1.25;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.tick-mark.active .tick-text {
+    color: #94a3b8;
+}
+
+.tick-mark.active .tick-sprint {
+    color: #22d3ee;
+}
+
+/* AI Summary Automation Styles */
+#aiResponse.loaded {
+    opacity: 1;
+    font-style: normal;
+    border-left: 2px solid rgba(34, 211, 238, 0.3);
+    padding-left: 15px;
+}
+
+/* Spinner animation tweak */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Success state for the status badge */
+.status-complete {
+    color: #10b981 !important;
+}
+.bg-success {
+    background-color: #10b981 !important;
+}
+
+/* Typing cursor effect */
+#aiResponse::after {
+    content: "|";
+    margin-left: 5px;
+    color: #22d3ee;
+    animation: blink 0.8s infinite;
+}
+
+#aiResponse.loaded::after {
+    display: none; /* Typing khatam toh cursor bhi khatam */
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+
+/* Custom Glow Colors for AI Summary */
+.text-emerald-400 { 
+    color: #34d399 !important; 
+    display: inline;
+}
+.text-yellow-400 { 
+    color: #fbbf24 !important; 
+    display: inline;
+}
+.text-red-500 { 
+    color: #ef4444 !important; 
+    display: inline;
+}
+.font-bold { 
+    font-weight: 700 !important; 
+}
+
+#modelSelector {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='cyan' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 0.8em;
+    padding-right: 1.5rem;
+}
+
+#modelSelector option {
+    background-color: #0f172a; /* Slate 900 */
+    color: #22d3ee; /* Cyan 400 */
+}
+
+/* GitHub Data table: right-align numeric columns (PRs, Commits, Lines +, Lines −) */
+.github-metrics-table .gh-num {
+    text-align: right !important;
+}
+.github-metrics-table .gh-num-block {
+    display: block !important;
+    text-align: right !important;
+}
+
+/* Dev / QA leaderboards — white plot surface (project detail light only) */
+html.theme-light body.pd-page .dev-leaderboard-table-wrap {
+    background: #ffffff;
+    border: 1px solid #e8eaf0;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 8px 28px rgba(15, 23, 42, 0.08);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+html.theme-light body.pd-page .dev-leaderboard-table-wrap .github-metrics-table thead tr,
+html.theme-light body.pd-page .dev-leaderboard-table-wrap table thead tr {
+    background: #f1f5f9 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+html.theme-light body.pd-page .dev-leaderboard-table-wrap .github-metrics-table thead th,
+html.theme-light body.pd-page .dev-leaderboard-table-wrap table thead th {
+    color: #0f172a !important;
+}
+html.theme-light body.pd-page .dev-leaderboard-table-wrap tbody {
+    color: #334155;
+}
+html.theme-light body.pd-page .github-metrics-table .gh-leader-name,
+html.theme-light body.pd-page .dev-leaderboard-table-wrap .gh-leader-name {
+    color: #0f172a !important;
+    font-weight: 700;
+}
+html.theme-light body.pd-page .github-metrics-table .gh-leader-repos,
+html.theme-light body.pd-page .dev-leaderboard-table-wrap .gh-leader-repos {
+    color: #334155 !important;
+}
+html.theme-light body.pd-page .github-metrics-table .gh-leader-row,
+html.theme-light body.pd-page .dev-leaderboard-table-wrap .gh-leader-row {
+    border-color: rgba(15, 23, 42, 0.08) !important;
+}
+html.theme-light body.pd-page .github-metrics-table .gh-leader-row--even,
+html.theme-light body.pd-page .dev-leaderboard-table-wrap .gh-leader-row--even {
+    background: #f8fafc !important;
+}
+html.theme-light body.pd-page .github-metrics-table .gh-leader-row--odd,
+html.theme-light body.pd-page .dev-leaderboard-table-wrap .gh-leader-row--odd {
+    background: #ffffff !important;
+}
+html.theme-light body.pd-page .github-metrics-table .gh-leader-row:hover,
+html.theme-light body.pd-page .dev-leaderboard-table-wrap .gh-leader-row:hover {
+    background: #eef2f7 !important;
+}
+html.theme-light body.pd-page .gh-score-track {
+    background: #cbd5e1 !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+html.theme-light body.pd-page .dev-leaderboard-table-wrap .gh-score-track > div[class*="bg-gradient"] {
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+/* Dev / QA leaderboards — dark surfaces (project detail dark) */
+html.dark body.pd-page .dev-leaderboard-table-wrap {
+    background: rgba(15, 23, 42, 0.78) !important;
+    border: 1px solid rgba(148, 163, 184, 0.14) !important;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.35),
+        0 8px 28px rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+}
+html.dark body.pd-page .dev-leaderboard-table-wrap .github-metrics-table thead tr,
+html.dark body.pd-page .dev-leaderboard-table-wrap table thead tr {
+    background: rgba(30, 41, 59, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+html.dark body.pd-page .dev-leaderboard-table-wrap .github-metrics-table thead th,
+html.dark body.pd-page .dev-leaderboard-table-wrap table thead th {
+    color: #cbd5e1 !important;
+}
+html.dark body.pd-page .dev-leaderboard-table-wrap tbody {
+    color: #cbd5e1 !important;
+}
+html.dark body.pd-page .github-metrics-table .gh-leader-name,
+html.dark body.pd-page .dev-leaderboard-table-wrap .gh-leader-name {
+    color: #f8fafc !important;
+    font-weight: 700;
+}
+html.dark body.pd-page .github-metrics-table .gh-leader-repos,
+html.dark body.pd-page .dev-leaderboard-table-wrap .gh-leader-repos {
+    color: #94a3b8 !important;
+}
+html.dark body.pd-page .github-metrics-table .gh-leader-row,
+html.dark body.pd-page .dev-leaderboard-table-wrap .gh-leader-row {
+    border-color: rgba(255, 255, 255, 0.06) !important;
+}
+html.dark body.pd-page .github-metrics-table .gh-leader-row--even,
+html.dark body.pd-page .dev-leaderboard-table-wrap .gh-leader-row--even {
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+html.dark body.pd-page .github-metrics-table .gh-leader-row--odd,
+html.dark body.pd-page .dev-leaderboard-table-wrap .gh-leader-row--odd {
+    background: rgba(15, 23, 42, 0.55) !important;
+}
+html.dark body.pd-page .github-metrics-table .gh-leader-row:hover,
+html.dark body.pd-page .dev-leaderboard-table-wrap .gh-leader-row:hover {
+    background: rgba(59, 130, 246, 0.14) !important;
+}
+html.dark body.pd-page .gh-score-track {
+    background: rgba(51, 65, 85, 0.65) !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+html.dark body.pd-page .dev-leaderboard-table-wrap .gh-score-track > div[class*="bg-gradient"] {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+html.dark body.pd-page #githubLeaderboardDetailBody,
+html.dark body.pd-page #qaLeaderboardDetailBody {
+    color: #cbd5e1 !important;
+}
+html.dark body.pd-page .dev-leaderboard-table-wrap th.dev-data-sort:hover,
+html.dark body.pd-page .dev-leaderboard-table-wrap th.qa-data-sort:hover {
+    color: #f8fafc !important;
+}
+
+/* Dev / QA leaderboard — intro + formula (dark project detail) */
+body.pd-page .lb-header-blurb,
+body.pd-page .lb-qa-detail-subtitle {
+    color: #cbd5e1 !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    line-height: 1.5 !important;
+    max-width: none !important;
+}
+body.pd-page .lb-header-blurb strong {
+    color: #e2e8f0 !important;
+    font-weight: 600 !important;
+}
+
+/* Anomalies & follow-ups — full-width copy, readable meta (project detail) */
+body.pd-page .pd-anomaly-card {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+}
+@media (max-width: 1023px) {
+    html.dark body.pd-page .pd-anomaly-card {
+        padding: 0.625rem 0.875rem !important;
+    }
+    html.dark body.pd-page .pd-anomaly-meta {
+        gap: 0.25rem 0.5rem !important;
+    }
+    html.dark body.pd-page .pd-anomaly-title {
+        margin-top: 0.375rem !important;
+    }
+    html.dark body.pd-page .pd-anomaly-issue {
+        margin-top: 0.375rem !important;
+        padding-top: 0.375rem !important;
+    }
+}
+body.pd-page .pd-anomaly-date,
+body.pd-page .pd-anomaly-owner {
+    color: #cbd5e1 !important;
+}
+body.pd-page .pd-anomaly-issue {
+    color: #e2e8f0 !important;
+    font-weight: 500 !important;
+}
+
+/* Project detail: Geographical + Work Categorization (aligned with org dashboard) */
+.detail-geo-panel,
+.detail-workcat-panel,
+.detail-epic-panel {
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.72) 0%, rgba(15, 23, 42, 0.45) 100%);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+}
+.detail-chart-glass {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Geo / Work / Epic / TestRail — strip: solid slate (gradients were low-contrast with body copy) */
+body.pd-page .pd-chart-card-header {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+/* Geo / Work / Epic / TestRail chart strip — title + compact blurb */
+body.pd-page .pd-chart-card-header h3 {
+    color: #f8fafc !important;
+    text-shadow: 0 1px 2px rgba(2, 6, 23, 0.85);
+}
+body.pd-page .pd-chart-card-header p,
+body.pd-page .pd-chart-card-blurb {
+    color: #cbd5e1 !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    line-height: 1.45 !important;
+    max-width: 42rem;
+}
+body.pd-page .pd-chart-card-header strong {
+    color: #e2e8f0 !important;
+    font-weight: 600 !important;
+}
+body.pd-page .pd-chart-card-header code {
+    color: #e2e8f0 !important;
+    background: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* ── Sprint Health Matrix (same visual as org dashboard) ── */
+
+.health-matrix-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.health-matrix-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(8px);
+}
+.health-matrix-table tbody tr {
+    transition: background 0.18s ease;
+}
+.health-matrix-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.health-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: default;
+    vertical-align: middle;
+    position: relative;
+}
+.health-dot:hover {
+    transform: scale(1.12);
+}
+.health-dot-5 {
+    background: linear-gradient(155deg, #6ee7b7 0%, #047857 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.health-dot-4 {
+    background: linear-gradient(155deg, #7dd3fc 0%, #0369a1 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.health-dot-3 {
+    background: linear-gradient(155deg, #fcd34d 0%, #b45309 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.health-dot-2 {
+    background: linear-gradient(155deg, #fdba74 0%, #c2410c 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.health-dot-1 {
+    background: linear-gradient(155deg, #fca5a5 0%, #b91c1c 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.health-dot-null {
+    background: linear-gradient(155deg, #9ca3af 0%, #374151 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    opacity: 0.65;
+}
+
+.health-matrix-overall-border-5 { border-left: 2px solid rgba(52, 211, 153, 0.55); }
+.health-matrix-overall-border-4 { border-left: 2px solid rgba(56, 189, 248, 0.55); }
+.health-matrix-overall-border-3 { border-left: 2px solid rgba(251, 191, 36, 0.55); }
+.health-matrix-overall-border-2 { border-left: 2px solid rgba(251, 146, 60, 0.55); }
+.health-matrix-overall-border-1 { border-left: 2px solid rgba(248, 113, 113, 0.55); }
+
+/* Sprint Health Matrix — “Pillar Scores” badge (project detail, dark) */
+.health-matrix-header-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    background: rgba(6, 78, 59, 0.88);
+    border: 1px solid rgba(52, 211, 153, 0.65);
+    color: #ecfdf5;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.health-matrix-board-pill {
+    margin-left: 0.375rem;
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.45rem;
+    border-radius: 9999px;
+    line-height: 1.25;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.health-matrix-board-pill--sprint {
+    background: rgba(17, 94, 89, 0.92);
+    border: 1px solid rgba(45, 212, 191, 0.65);
+    color: #f0fdfa;
+}
+.health-matrix-board-pill--kanban {
+    background: rgba(91, 33, 182, 0.9);
+    border: 1px solid rgba(196, 181, 253, 0.6);
+    color: #faf5ff;
+}
+
+/* Sprint history table — review date (avoid text-white; invisible on light theme) */
+body.pd-page #historyTableBody .pd-history-review-date {
+    color: #f1f5f9;
+}

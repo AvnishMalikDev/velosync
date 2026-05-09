@@ -1,0 +1,5 @@
+/**
+ * Compatibility redirect — dark theme stylesheet.
+ * Prefer linking `css/dashboard-dark.css` directly when `dashboard-theme` is dark.
+ */
+@import url("css/dashboard-dark.css");

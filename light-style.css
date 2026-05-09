@@ -1,0 +1,5 @@
+/**
+ * Compatibility redirect — default theme is light (`css/dashboard-light.css`).
+ * Prefer linking `css/dashboard-light.css` / `css/dashboard-dark.css` directly in HTML.
+ */
+@import url("css/dashboard-light.css");

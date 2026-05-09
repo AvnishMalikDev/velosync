@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "healthMatrix": {
+    "weights": {
+      "DELIVERY_WEIGHT": 0.25,
+      "FLOW_WEIGHT": 0.15,
+      "STABILITY_WEIGHT": 0.15,
+      "QUALITY_WEIGHT": 0.2,
+      "RISK_WEIGHT": 0.15,
+      "AI_ADOPTION_WEIGHT": 0.1
+    },
+    "benchmarks": {
+      "COMPOSITE_ELITE": 85,
+      "COMPOSITE_STRONG": 70,
+      "COMPOSITE_STABLE": 55,
+      "COMPOSITE_AT_RISK": 40,
+      "CYCLE_ELITE_DAYS": 12,
+      "CYCLE_STRONG_DAYS": 21,
+      "CYCLE_POOR_DAYS": 52,
+      "CARRYOVER_GOOD_MAX": 10,
+      "CARRYOVER_POOR_MIN": 30,
+      "BUGFIX_GOOD_MIN": 80,
+      "BUGFIX_POOR_MAX": 50,
+      "COMPLETION_ELITE": 90,
+      "COMPLETION_STRONG": 80,
+      "COMPLETION_STABLE": 70,
+      "COMPLETION_AT_RISK": 50
+    }
+  },
+  "devData": {
+    "combinedToolsMaxWeight": 0.24,
+    "weights": {
+      "DELIVERY": 0.3,
+      "GITHUB_IMPACT": 0.15,
+      "GITHUB_QUALITY": 0.15,
+      "CONSISTENCY": 0.1,
+      "IMPACT_BREADTH": 0.1,
+      "CONFLUENCE_DOCS": 0.05,
+      "CURSOR_LEADERBOARD": 0.05,
+      "COPILOT_INDIVIDUAL": 0.05,
+      "AI_TOOLS_ADOPTION": 0.05
+    },
+    "displayTiers": {
+      "goodMin": 8,
+      "midMin": 5,
+      "lowMin": 3
+    }
+  },
+  "qaData": {
+    "weights": {
+      "VOLUME": 0.4,
+      "COVERAGE": 0.3,
+      "AUTHORSHIP": 0.1,
+      "CONSISTENCY": 0.05,
+      "COMPLEXITY": 0.1,
+      "DOCS": 0.05
+    },
+    "displayTiers": {
+      "goodMin": 8,
+      "midMin": 5
+    },
+    "bands": {
+      "stellarMin": 90,
+      "surgeMin": 70,
+      "cruiseMin": 50
+    }
+  }
+}

@@ -1,0 +1,19 @@
+node_modules/
+.env
+jira-md-export/.env
+ecosystem.data-sync.config.cjs
+*.log
+.DS_Store
+
+# Local TLS dev certs (use `npm run gen-cert` or Admin HTTPS upload)
+key.pem
+cert.pem
+ssl/*.pem
+
+# Large / generated artifacts (not for git)
+chatbot.zip
+chatbot/.cache/
+output/*
+!output/.gitkeep
+chatbot/data/*
+!chatbot/data/.gitkeep

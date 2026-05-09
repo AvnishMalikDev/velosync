@@ -1,0 +1,311 @@
+﻿/**
+ * RVeloSyncurce Insights — light theme.
+ * Activated by the same `html.theme-light` toggle as the main dashboard
+ * (localStorage key: "dashboard-theme"). Loaded AFTER rVeloSyncurce-style.css so
+ * these rules win via specificity + source order for identical selectors.
+ *
+ * Goal: strong black-on-white readability across every card, pill, table,
+ * loader, and dropdown on the RVeloSyncurce Insights page.
+ */
+
+/* ──────────────────────────────────────────────────────────────
+   Base
+   ────────────────────────────────────────────────────────────── */
+html.theme-light body {
+    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+    color: #0f172a;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Cards (replace glassmorphism with solid white)
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .card {
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+html.theme-light .card:hover {
+    background: #ffffff;
+    border-color: rgba(168, 85, 247, 0.35);
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
+}
+
+html.theme-light .person-profile-card {
+    background: #ffffff;
+    border-color: rgba(168, 85, 247, 0.25);
+}
+html.theme-light .person-profile-card:hover {
+    border-color: rgba(168, 85, 247, 0.45);
+    box-shadow: 0 0 40px -10px rgba(168, 85, 247, 0.18),
+                0 12px 40px rgba(15, 23, 42, 0.12);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   KPI cards
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .kpi-label { color: #475569; }
+html.theme-light .kpi-value { color: #0f172a; }
+html.theme-light .kpi-sub   { color: #475569; }
+
+/* ──────────────────────────────────────────────────────────────
+   Chart cards
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .chart-title    { color: #0f172a; }
+html.theme-light .chart-subtitle { color: #475569; font-weight: 600; }
+
+/* ──────────────────────────────────────────────────────────────
+   Role badges
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .role-badge.dev     { background: rgba(59,130,246,0.15);  color: #1d4ed8; }
+html.theme-light .role-badge.qa      { background: rgba(234,179,8,0.20);   color: #92400e; }
+html.theme-light .role-badge.manager { background: rgba(16,185,129,0.15);  color: #047857; }
+html.theme-light .role-badge.lead    { background: rgba(168,85,247,0.15);  color: #6d28d9; }
+
+/* ──────────────────────────────────────────────────────────────
+   Source chips
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .source-chip {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+}
+html.theme-light .source-chip.active {
+    color: #0f172a;
+    background: #ffffff;
+    border-color: rgba(168, 85, 247, 0.4);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   AI Tools section
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .ai-tools-card {
+    border-color: rgba(168, 85, 247, 0.25);
+}
+html.theme-light .ai-tools-card:hover {
+    border-color: rgba(168, 85, 247, 0.4);
+}
+html.theme-light .ai-tool-section {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+html.theme-light .ai-metric-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+}
+html.theme-light .ai-metric-label { color: #475569; }
+html.theme-light .ai-metric-value { color: #0f172a; }
+html.theme-light .ai-no-data      { color: #64748b; }
+
+html.theme-light .ai-star {
+    fill: rgba(15, 23, 42, 0.12);
+}
+html.theme-light .ai-star.filled {
+    fill: #7c3aed;
+    filter: drop-shadow(0 0 3px rgba(124, 58, 237, 0.35));
+}
+
+html.theme-light .acceptance-bar-track {
+    background: #e2e8f0;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Tables
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .tbl-th {
+    color: #0f172a;
+    background: #f1f5f9;
+    border-bottom-color: #cbd5e1;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+html.theme-light .tbl-td {
+    color: #1e293b;
+    border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+html.theme-light .tbl-td.key-cell {
+    color: #6d28d9;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Priority / Status / Type pills  (stronger ink on tinted bg)
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .priority-pill.highest,
+html.theme-light .priority-pill.critical,
+html.theme-light .priority-pill.blocker { background: rgba(239,68,68,0.15);  color: #b91c1c; }
+html.theme-light .priority-pill.high,
+html.theme-light .priority-pill.major   { background: rgba(249,115,22,0.18); color: #c2410c; }
+html.theme-light .priority-pill.medium,
+html.theme-light .priority-pill.minor   { background: rgba(234,179,8,0.22);  color: #92400e; }
+html.theme-light .priority-pill.low     { background: rgba(59,130,246,0.15); color: #1d4ed8; }
+html.theme-light .priority-pill.lowest,
+html.theme-light .priority-pill.trivial { background: rgba(100,116,139,0.15); color: #475569; }
+
+html.theme-light .status-pill        { background: rgba(100,116,139,0.15); color: #475569; }
+html.theme-light .status-pill.done   { background: rgba(16,185,129,0.15);  color: #047857; }
+html.theme-light .status-pill.wip    { background: rgba(59,130,246,0.15);  color: #1d4ed8; }
+html.theme-light .status-pill.todo   { background: rgba(100,116,139,0.15); color: #475569; }
+
+html.theme-light .type-pill.story   { background: rgba(16,185,129,0.15);  color: #047857; }
+html.theme-light .type-pill.bug     { background: rgba(239,68,68,0.15);   color: #b91c1c; }
+html.theme-light .type-pill.task    { background: rgba(59,130,246,0.15);  color: #1d4ed8; }
+html.theme-light .type-pill.subtask { background: rgba(168,85,247,0.15);  color: #6d28d9; }
+html.theme-light .type-pill.epic    { background: rgba(234,179,8,0.22);   color: #92400e; }
+
+/* ──────────────────────────────────────────────────────────────
+   Loader & directory-sync overlays
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .loader-overlay,
+html.theme-light .directory-overlay {
+    background: rgba(248, 250, 252, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+html.theme-light .spinner,
+html.theme-light .directory-overlay-spinner {
+    border-color: rgba(15, 23, 42, 0.08);
+    border-top-color: #7c3aed;
+    border-right-color: #a855f7;
+}
+html.theme-light .loader-step            { color: #0f172a; }
+html.theme-light .progress-track,
+html.theme-light .directory-overlay-bar-track { background: #e2e8f0; }
+html.theme-light .loader-detail          { color: #475569; }
+html.theme-light .loader-percent         { color: #334155; }
+html.theme-light .directory-overlay-title { color: #0f172a; }
+html.theme-light .directory-overlay-sub   { color: #475569; }
+
+/* ──────────────────────────────────────────────────────────────
+   Analyze button (keep its branded gradient; just tune shadow)
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .analyze-btn::after {
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Days dropdown
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .days-dropdown-trigger {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #0f172a;
+}
+html.theme-light .days-dropdown-trigger:hover {
+    background: #f8fafc;
+    border-color: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+}
+html.theme-light .days-dropdown.open .days-dropdown-trigger {
+    background: #f8fafc;
+    border-color: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.18);
+}
+html.theme-light .days-dropdown-menu {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12),
+                0 0 0 1px rgba(15, 23, 42, 0.04);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+html.theme-light .days-dropdown-item:hover {
+    background: rgba(168, 85, 247, 0.10);
+}
+html.theme-light .days-dropdown-item.active {
+    background: rgba(168, 85, 247, 0.14);
+}
+html.theme-light .days-dropdown-num  { color: #0f172a; }
+html.theme-light .days-dropdown-text { color: #475569; }
+html.theme-light .days-dropdown-item:hover .days-dropdown-num,
+html.theme-light .days-dropdown-item.active .days-dropdown-num {
+    color: #7c3aed;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Suggestions dropdown
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .suggestions-dropdown {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 16px 48px rgba(15, 23, 42, 0.14);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+html.theme-light .suggestion-item:hover,
+html.theme-light .suggestion-item.active-suggestion {
+    background: rgba(168, 85, 247, 0.10);
+}
+html.theme-light .suggestion-item.active-suggestion {
+    background: rgba(168, 85, 247, 0.16);
+}
+html.theme-light .suggestion-name   { color: #0f172a; }
+html.theme-light .suggestion-source { color: #64748b; }
+
+/* ──────────────────────────────────────────────────────────────
+   Trend arrows
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .trend-up   { color: #047857; }
+html.theme-light .trend-down { color: #b91c1c; }
+html.theme-light .trend-flat { color: #475569; }
+
+/* ──────────────────────────────────────────────────────────────
+   Scrollbar
+   ────────────────────────────────────────────────────────────── */
+html.theme-light ::-webkit-scrollbar-thumb        { background: #cbd5e1; }
+html.theme-light ::-webkit-scrollbar-thumb:hover  { background: #94a3b8; }
+
+/* ──────────────────────────────────────────────────────────────
+   Tailwind utility overrides used inside RVeloSyncurceInsights.html
+   (header, inputs, pills, error banner, etc.)
+   ────────────────────────────────────────────────────────────── */
+html.theme-light .border-slate-800\/50 { border-color: rgba(148, 163, 184, 0.45) !important; }
+html.theme-light .bg-slate-800\/80     { background-color: #f1f5f9 !important; }
+html.theme-light .hover\:bg-slate-700:hover { background-color: #e2e8f0 !important; }
+html.theme-light .border-slate-700\/70 { border-color: #cbd5e1 !important; }
+html.theme-light .bg-slate-900\/80     { background-color: #ffffff !important; }
+
+html.theme-light a.text-slate-300      { color: #1e293b !important; }
+html.theme-light a.hover\:text-white:hover { color: #0f172a !important; }
+html.theme-light a svg                 { color: #334155; }
+
+html.theme-light .text-white           { color: #0f172a !important; }
+html.theme-light input.text-white,
+html.theme-light input.mono            { color: #0f172a !important; }
+html.theme-light .placeholder-slate-600::placeholder { color: #94a3b8 !important; }
+
+/* brand accent ink swaps — keep icons readable on white */
+html.theme-light .text-purple-400  { color: #7c3aed !important; }
+html.theme-light .text-emerald-400 { color: #047857 !important; }
+html.theme-light .text-blue-400    { color: #1d4ed8 !important; }
+html.theme-light .text-red-400     { color: #b91c1c !important; }
+html.theme-light .text-amber-400   { color: #b45309 !important; }
+html.theme-light .text-cyan-400    { color: #0e7490 !important; }
+html.theme-light .text-indigo-400  { color: #4338ca !important; }
+html.theme-light .text-orange-400  { color: #c2410c !important; }
+html.theme-light .text-sky-400     { color: #0369a1 !important; }
+
+html.theme-light .text-slate-500   { color: #475569 !important; }
+html.theme-light .text-slate-600   { color: #334155 !important; }
+
+/* header subtitle pill — "Individual Contributor Analytics" */
+html.theme-light .bg-purple-950\/30    { background-color: rgba(237, 233, 254, 0.9) !important; }
+html.theme-light .border-purple-900\/30 { border-color: rgba(196, 181, 253, 0.8) !important; }
+
+/* small "JIRA match" pill shown next to person name */
+html.theme-light .bg-emerald-950\/30    { background-color: rgba(209, 250, 229, 0.9) !important; }
+html.theme-light .border-emerald-900\/30 { border-color: rgba(110, 231, 183, 0.75) !important; }
+
+/* Error banner */
+html.theme-light .bg-red-950\/40        { background-color: rgba(254, 226, 226, 0.9) !important; }
+html.theme-light .border-red-500\/30    { border-color: rgba(239, 68, 68, 0.4) !important; }
+
+/* Analyze button gets to keep white text on purple gradient */
+html.theme-light button.analyze-btn.text-white { color: #ffffff !important; }
+
+/* AI-tool section icon tiles (e.g. .bg-purple-500/20, .bg-emerald-500/20) */
+html.theme-light .bg-purple-500\/20  { background-color: rgba(168, 85, 247, 0.18) !important; }
+html.theme-light .bg-emerald-500\/20 { background-color: rgba(16, 185, 129, 0.18) !important; }
+
+/* "No completed / no open" empty-state hint text */
+html.theme-light .text-slate-600.uppercase { color: #475569 !important; }

@@ -1,0 +1,81 @@
+{
+  "projects": [
+    {
+      "active": true,
+      "key": "HCH",
+      "name": "Helios Clinical Hub",
+      "parent": "",
+      "excludeWords": "",
+      "mustHave": "",
+      "boardId": 91001,
+      "sprintCount": 3,
+      "manager": "Priya Nair",
+      "startStage": "Ready for Dev",
+      "endStage": "Ready for Staging",
+      "testRailProjectIds": [501],
+      "overwriteexistingdatafiles": false
+    },
+    {
+      "active": true,
+      "type": "kanban",
+      "key": "SRC",
+      "name": "Stratus Revenue Cloud",
+      "parent": "",
+      "excludeWords": "",
+      "mustHave": "",
+      "boardId": 91002,
+      "sprintCount": 3,
+      "manager": "Tyler Brennan",
+      "startStage": "Ready for Dev",
+      "endStage": "Ready for Staging",
+      "testRailProjectIds": [502],
+      "overwriteexistingdatafiles": false
+    },
+    {
+      "active": true,
+      "type": "kanban",
+      "key": "KDF",
+      "name": "Kestrel Data Fabric",
+      "parent": "",
+      "excludeWords": "",
+      "mustHave": "",
+      "boardId": 91003,
+      "sprintCount": 3,
+      "manager": "Neha Gupta",
+      "startStage": "Ready for Dev",
+      "endStage": "Ready for Staging",
+      "testRailProjectIds": [503],
+      "overwriteexistingdatafiles": false
+    },
+    {
+      "active": true,
+      "key": "OSG",
+      "name": "Obsidian Security Gateway",
+      "parent": "",
+      "excludeWords": "",
+      "mustHave": "",
+      "boardId": 91004,
+      "sprintCount": 3,
+      "manager": "Jordan Hayes",
+      "startStage": "Ready for Dev",
+      "endStage": "Ready for Staging",
+      "testRailProjectIds": [504],
+      "overwriteexistingdatafiles": false
+    },
+    {
+      "active": true,
+      "key": "CMX",
+      "name": "Cedar Member Experience",
+      "parent": "",
+      "excludeWords": "",
+      "mustHave": "",
+      "boardId": 91005,
+      "sprintCount": 3,
+      "manager": "Amit Desai",
+      "startStage": "Ready for Dev",
+      "endStage": "Ready for Staging",
+      "testRailProjectIds": [505],
+      "overwriteexistingdatafiles": false
+    }
+  ]
+}

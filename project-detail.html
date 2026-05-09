@@ -1,0 +1,497 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="theme-light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Deep Dive | VeloSync</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="project-style.css">
+    <link rel="stylesheet" href="project-detail-light.css">
+    <link rel="stylesheet" href="css/health-matrix-chart.css">
+    <script src="js/theme-init.js"></script>
+    <script src="js/ui/health-matrix-chart.js"></script>
+    <style>
+      #projectDetailThemeToggle {
+        border: 1px solid rgba(148, 163, 184, 0.55);
+        background: #ffffff;
+        color: #b45309;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+      }
+      #projectDetailThemeToggle:hover {
+        background: #f8fafc;
+        border-color: rgba(100, 116, 139, 0.65);
+        color: #92400e;
+      }
+      html.dark #projectDetailThemeToggle {
+        background: rgba(30, 41, 59, 0.95);
+        border-color: rgba(71, 85, 105, 0.85);
+        color: #fbbf24;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+      }
+      html.dark #projectDetailThemeToggle:hover {
+        background: rgba(51, 65, 85, 0.95);
+        border-color: rgba(148, 163, 184, 0.45);
+        color: #fde68a;
+      }
+    </style>
+</head>
+<body class="pd-page min-h-screen text-slate-200">
+    <div class="max-w-[95%] mx-auto px-4 py-8 perspective-container">
+        <nav class="mb-8 flex justify-between items-center flex-wrap gap-4">
+            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600">
+                <span class="text-blue-500">Project Intelligence</span> / <span id="breadcrumb" class="text-white">Detail View</span>
+            </span>
+            <div class="flex items-center gap-2 flex-wrap">
+            <div id="ssoUserStrip" class="flex items-center gap-2 text-[10px] bg-slate-900/60 border border-slate-700/50 rounded-lg px-3 py-1.5">
+                <a id="ssoLoginLink" href="/login" class="text-blue-400 hover:text-blue-300 font-bold uppercase tracking-widest">Sign in</a>
+                <span id="ssoUserInfo" class="hidden flex items-center gap-1.5">
+                    <span class="text-slate-500 uppercase tracking-widest">Logged in as</span>
+                    <span id="ssoUserName" class="pd-sso-user-name font-bold"></span>
+                    <span class="text-slate-600">|</span>
+                    <a href="/logout" class="text-slate-500 hover:text-white font-bold uppercase tracking-widest">Sign out</a>
+                </span>
+            </div>
+            <button type="button" id="projectDetailThemeToggle" class="flex items-center justify-center w-10 h-10 shrink-0 rounded-lg active:translate-y-px transition-colors" title="Switch theme" aria-label="Toggle light or dark theme" aria-pressed="false">
+                <svg id="projectDetailThemeIconSun" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                <svg id="projectDetailThemeIconMoon" class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+            </button>
+            </div>
+        </nav>
+        
+        <header class="mb-12 border-l-4 border-blue-600 pl-6 flex flex-col md:flex-row justify-between items-center gap-6">
+			<div class="flex-shrink-0 md:max-w-[28%]">
+				<h1 id="projectNameDisplay" class="text-3xl font-black uppercase tracking-tighter text-white italic leading-tight">Loading...</h1>
+				<p id="managerDisplay" class="text-slate-500 font-bold text-xs uppercase tracking-[0.2em] mt-2 italic">Manager: --</p>
+			</div>
+			
+			<div class="flex-1 min-w-0 w-full bg-slate-900/40 p-6 rounded-3xl border border-slate-800/50 backdrop-blur-sm shadow-2xl">
+				<div class="flex justify-between items-center mb-6">
+					<span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Review Period Timeline</span>
+					<div class="flex items-center gap-3 text-[11px] font-mono font-bold">
+						<span id="startDateLabel" class="text-blue-400 px-2 py-1 bg-blue-500/10 rounded">--</span> 
+						<span class="text-slate-700">TO</span> 
+						<span id="endDateLabel" class="text-emerald-400 px-2 py-1 bg-emerald-500/10 rounded">--</span>
+					</div>
+				</div>
+				
+				<div class="slider-wrapper mt-4 pl-11 pr-11">
+					<div class="slider-track-outer relative h-2 w-full">
+						<div class="absolute inset-0 bg-slate-800/50 rounded-full"></div>
+						<div id="sliderTrack" class="absolute h-full bg-gradient-to-r from-blue-600/40 to-emerald-600/40 rounded-full"></div>
+						<input type="range" id="rangeStart" class="slider-range-input absolute top-0 h-2 appearance-none bg-transparent pointer-events-none custom-slider start-handle" value="0">
+						<input type="range" id="rangeEnd" class="slider-range-input absolute top-0 h-2 appearance-none bg-transparent pointer-events-none custom-slider end-handle" value="100">
+					</div>
+					<div id="sliderLabels" class="flex justify-between mt-4 px-1 relative min-h-[3rem]">
+					</div>
+				</div>
+			</div>
+		</header>
+
+		<!-- Sprint Health Matrix: pillar-level dot grid per sprint (Red → Green, 1–5) -->
+		<div id="sprintHealthMatrixSection" class="hidden mb-10">
+			<div class="relative overflow-hidden rounded-2xl border border-white/[0.08] shadow-[0_8px_40px_rgba(16,185,129,0.12),0_8px_40px_rgba(239,68,68,0.06)]"
+				 style="background: linear-gradient(135deg, rgba(15,10,40,0.92) 0%, rgba(10,15,40,0.88) 40%, rgba(15,10,45,0.92) 100%); backdrop-filter: blur(24px);">
+				<div class="pointer-events-none absolute -top-24 -left-24 w-80 h-80 rounded-full opacity-20"
+					 style="background: radial-gradient(circle, rgba(16,185,129,0.45) 0%, transparent 70%); filter: blur(48px);"></div>
+				<div class="pointer-events-none absolute -bottom-20 -right-20 w-72 h-72 rounded-full opacity-15"
+					 style="background: radial-gradient(circle, rgba(239,68,68,0.35) 0%, transparent 70%); filter: blur(56px);"></div>
+
+				<div class="relative px-6 pt-6 pb-4 border-b border-white/[0.06]">
+					<div class="flex flex-wrap items-start justify-between gap-4">
+						<div class="flex items-center gap-3">
+							<div class="relative flex-shrink-0">
+								<div class="w-10 h-10 rounded-xl flex items-center justify-center"
+									 style="background: linear-gradient(135deg, rgba(16,185,129,0.3), rgba(234,179,8,0.2)); border: 1px solid rgba(16,185,129,0.35); box-shadow: 0 0 20px rgba(16,185,129,0.2);">
+									<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="color: #34d399;">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+									</svg>
+								</div>
+							</div>
+							<div>
+								<div class="flex items-center gap-2 flex-wrap">
+									<h3 class="text-white text-[11px] font-black uppercase tracking-[0.3em]">Sprint Health Matrix</h3>
+									<span class="health-matrix-header-badge">Pillar Scores</span>
+								</div>
+								<p class="text-slate-500 text-[10px] font-medium mt-0.5">Health across six scoring dimensions per sprint &middot; Red (1) &rarr; Green (5) &middot; Last column = weighted composite</p>
+							</div>
+						</div>
+						<div class="flex items-center gap-3 flex-shrink-0">
+							<div class="flex items-center gap-1.5">
+								<span class="health-dot health-dot-5" style="width:10px;height:10px;"></span><span class="text-[9px] text-slate-500 font-bold">Stellar</span>
+								<span class="health-dot health-dot-4 ml-2" style="width:10px;height:10px;"></span><span class="text-[9px] text-slate-500 font-bold">Surge</span>
+								<span class="health-dot health-dot-3 ml-2" style="width:10px;height:10px;"></span><span class="text-[9px] text-slate-500 font-bold">Cruise</span>
+								<span class="health-dot health-dot-2 ml-2" style="width:10px;height:10px;"></span><span class="text-[9px] text-slate-500 font-bold">Friction</span>
+								<span class="health-dot health-dot-1 ml-2" style="width:10px;height:10px;"></span><span class="text-[9px] text-slate-500 font-bold">Breach</span>
+								<span class="health-dot health-dot-null ml-2" style="width:10px;height:10px;"></span><span class="text-[9px] text-slate-500 font-bold">N/A</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="relative px-6 py-5">
+					<div class="rounded-xl border border-white/[0.06]" id="sprintHealthMatrixMount">
+						<div class="hmx-empty">Loading sprint data…</div>
+					</div>
+					<p class="mt-4 text-xs font-medium text-slate-500 leading-relaxed">
+						Delivery = sprint completion % (45%) &middot; Flow = cycle time in days (10%) &middot; Stability = carry-over rate (10%) &middot; Quality = bug fix rate (20%) &middot; Risk = blockers (5%) &middot; AI Adoption = Cursor / Copilot signal (10%) &middot; Overall = weighted composite
+					</p>
+					<details class="mt-4 group scoring-guide-details">
+						<summary class="text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-500 cursor-pointer select-none hover:text-slate-900 dark:hover:text-slate-300 transition-colors inline-flex items-center gap-1.5">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+							Scoring Guide &mdash; what makes a dot green or red?
+						</summary>
+						<div class="scoring-guide-card mt-3 rounded-xl border border-slate-200 dark:border-white/[0.06] overflow-hidden bg-white dark:bg-transparent shadow-sm dark:shadow-none">
+							<table class="w-full text-[10px] text-left">
+								<thead>
+									<tr class="bg-slate-100 dark:bg-white/[0.04]">
+										<th class="px-3 py-2 text-slate-700 dark:text-slate-400 font-bold uppercase tracking-widest">Pillar</th>
+										<th class="px-3 py-2 text-slate-700 dark:text-slate-400 font-bold uppercase tracking-widest">Metric</th>
+										<th class="px-3 py-2 text-slate-700 dark:text-slate-400 font-bold uppercase tracking-widest">Weight</th>
+										<th class="px-3 py-2 text-center"><span class="health-dot health-dot-5 inline-block" style="width:10px;height:10px;"></span><div class="text-slate-700 dark:text-slate-500 font-bold mt-0.5">Stellar</div></th>
+										<th class="px-3 py-2 text-center"><span class="health-dot health-dot-4 inline-block" style="width:10px;height:10px;"></span><div class="text-slate-700 dark:text-slate-500 font-bold mt-0.5">Surge</div></th>
+										<th class="px-3 py-2 text-center"><span class="health-dot health-dot-3 inline-block" style="width:10px;height:10px;"></span><div class="text-slate-700 dark:text-slate-500 font-bold mt-0.5">Cruise</div></th>
+										<th class="px-3 py-2 text-center"><span class="health-dot health-dot-2 inline-block" style="width:10px;height:10px;"></span><div class="text-slate-700 dark:text-slate-500 font-bold mt-0.5">Friction</div></th>
+										<th class="px-3 py-2 text-center"><span class="health-dot health-dot-1 inline-block" style="width:10px;height:10px;"></span><div class="text-slate-700 dark:text-slate-500 font-bold mt-0.5">Breach</div></th>
+									</tr>
+								</thead>
+								<tbody id="healthScoringGuideTbody" class="divide-y divide-slate-200 dark:divide-white/[0.04] text-slate-700 dark:text-slate-400">
+									<tr><td colspan="8" class="px-3 py-3 text-center text-slate-600 dark:text-slate-500 italic text-[10px]">Loading scoring guide from server config…</td></tr>
+								</tbody>
+							</table>
+						</div>
+					</details>
+				</div>
+			</div>
+		</div>
+
+		<div class="card mb-10 border-l-4 border-l-cyan-500 bg-cyan-950/5 group relative overflow-hidden">
+			<div class="absolute -right-20 -top-20 w-64 h-64 bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none"></div>
+			
+			<div class="flex items-center justify-between mb-4">
+				<div class="flex items-center gap-3">
+					<div class="p-2 bg-cyan-500/20 rounded-lg">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+						</svg>
+					</div>
+					<h3 class="text-white text-[11px] font-black uppercase tracking-[0.3em]">AI Analysis</h3>
+				</div>
+				
+				<div class="flex items-center gap-4 flex-wrap">
+			<select id="modelSelector" data-model-picker class="bg-slate-900 border border-slate-700 text-cyan-400 text-[10px] font-bold rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-all cursor-pointer uppercase tracking-tighter"></select>
+				<div id="aiStatusContainer" class="hidden items-center gap-2">
+					<div id="aiSpinner" class="w-3 h-3 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
+					<span id="aiStatusText" class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Analyzing...</span>
+				</div>
+				<button type="button" id="generateDetailAiBtn" class="bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white text-[10px] font-black uppercase tracking-widest px-5 py-2 rounded-xl transition-all shadow-lg">
+					⚡ Generate AI Summary
+				</button>
+			</div>
+			</div>
+
+		<div id="aiResponse" class="bg-white rounded-xl border border-slate-200 px-4 py-3 text-slate-500 text-sm leading-relaxed font-medium italic shadow-sm">
+			Click "Generate AI Summary" to analyse this project's sprints (based on the date range selected above).
+		</div>
+		</div>
+
+		<!-- 1. Developer Insights -->
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-10">
+			<div class="card group">
+				<h3 class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6 group-hover:text-pink-400 transition-colors">Developer Insights: Points vs AI (Scale 1-5)</h3>
+				<div class="h-[350px]"><canvas id="devChart"></canvas></div>
+			</div>
+			<!-- 2. QA Insights -->
+			<div class="card group">
+				<h3 class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6 group-hover:text-emerald-400 transition-colors">QA Insights: QA Points by Assignee</h3>
+				<div class="h-[350px]"><canvas id="qaChart"></canvas></div>
+			</div>
+		</div>
+
+		<!-- 3. Velocity & Success + 4. Cycle Time -->
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-10">
+			<div class="card group">
+				<h3 class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6 group-hover:text-blue-400 transition-colors">Velocity &amp; Success Trend</h3>
+				<div class="h-[350px]"><canvas id="trendChart"></canvas></div>
+			</div>
+			<div class="card group">
+				<h3 class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6 group-hover:text-amber-400 transition-colors">Cycle Time Trend (Avg Days)</h3>
+				<div class="h-[300px]"><canvas id="cycleChart"></canvas></div>
+			</div>
+		</div>
+
+        <!-- Work Categorization -->
+        <div class="mb-10">
+            <div id="detailWorkCategorizationSection" class="hidden detail-workcat-panel">
+                <div class="pd-chart-card-header relative border-b border-white/10 bg-gradient-to-r from-amber-950/35 via-slate-900/30 to-emerald-950/35 px-5 py-3 rounded-t-2xl backdrop-blur-xl">
+                    <div class="max-w-3xl">
+                        <div class="flex items-center gap-2">
+                            <span class="h-2 w-2 shrink-0 rounded-full bg-gradient-to-br from-amber-400 to-orange-500"></span>
+                            <span class="h-2 w-2 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500"></span>
+                            <h3 class="text-slate-300 text-[10px] font-black uppercase tracking-[0.2em]">Work Categorization</h3>
+                        </div>
+                        <p class="pd-chart-card-blurb mt-2">Share of each <strong class="text-slate-400 font-semibold">JIRA Work Classification</strong> per sprint (% of closed items, else opened). From sprint markdown.</p>
+                    </div>
+                </div>
+                <div class="detail-chart-glass p-4 sm:p-5 rounded-b-2xl border border-t-0 border-white/[0.07] bg-slate-950/40">
+                    <div class="relative w-full h-[280px]">
+                        <canvas id="detailWorkCategorizationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Epic focus (top 5 + other): from sprint markdown -->
+        <div id="detailEpicWorkSection" class="hidden mb-10 detail-epic-panel">
+            <div class="pd-chart-card-header relative border-b border-white/10 bg-gradient-to-r from-indigo-950/40 via-slate-900/30 to-rose-950/35 px-5 py-3 rounded-t-2xl backdrop-blur-xl">
+                <div class="max-w-3xl">
+                    <div class="flex items-center gap-2">
+                        <span class="h-2 w-2 shrink-0 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500"></span>
+                        <span class="h-2 w-2 shrink-0 rounded-full bg-gradient-to-br from-rose-400 to-orange-500"></span>
+                        <h3 class="text-slate-300 text-[10px] font-black uppercase tracking-[0.2em]">Epic focus</h3>
+                    </div>
+                    <p class="pd-chart-card-blurb mt-2"><strong class="text-slate-400 font-semibold">Top 5 JIRA epics</strong> the team touched per sprint (share of closed work, else opened — same as Work categorization). Additional epics roll into <strong class="text-slate-400 font-semibold">Other epics</strong>. Source: sprint markdown epic table (re-export to populate).</p>
+                </div>
+            </div>
+            <div class="detail-chart-glass p-4 sm:p-5 rounded-b-2xl border border-t-0 border-white/[0.07] bg-slate-950/40">
+                <div class="relative w-full h-[300px]">
+                    <canvas id="detailEpicWorkChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TestRail Test Execution -->
+        <div id="testRailChartSection" class="hidden mb-10">
+            <div class="pd-chart-card-header relative border-b border-white/10 bg-gradient-to-r from-teal-950/40 via-slate-900/30 to-cyan-950/40 px-5 py-3 rounded-t-2xl backdrop-blur-xl">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                    <div class="max-w-3xl min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="h-2 w-2 shrink-0 rounded-full bg-gradient-to-br from-teal-400 to-emerald-400"></span>
+                            <span class="h-2 w-2 shrink-0 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500"></span>
+                            <h3 class="text-slate-300 text-[10px] font-black uppercase tracking-[0.2em]">TestRail QA Authorship</h3>
+                        </div>
+                        <p class="pd-chart-card-blurb mt-2">Sprint-over-sprint authorship activity in <strong class="text-slate-400 font-semibold">TestRail</strong>. Left: cases / runs / plans created (stacked). Right: total authorship trend.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-[9px] font-bold uppercase tracking-widest shrink-0 sm:pt-0.5">
+                        <span class="text-teal-400/80 flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-full bg-teal-400"></span> Cases</span>
+                        <span class="text-blue-400/80 flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-full bg-blue-400"></span> Runs</span>
+                        <span class="text-violet-400/80 flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-full bg-violet-400"></span> Plans</span>
+                    </div>
+                </div>
+            </div>
+            <div class="detail-chart-glass p-4 sm:p-5 rounded-b-2xl border border-t-0 border-white/[0.07] bg-slate-950/40">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="relative w-full h-[280px]">
+                        <canvas id="trExecutionChart"></canvas>
+                    </div>
+                    <div class="relative w-full h-[280px]">
+                        <canvas id="trRateChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bug Fix Rate vs Carry-over Rate -->
+        <div class="card group mb-10">
+            <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6 group-hover:text-lime-400 transition-colors">Bug Fix Rate vs Carry-over Rate Trend (%)</h3>
+            <div class="h-[270px]"><canvas id="carryBugChart"></canvas></div>
+        </div>
+
+        <!-- Dev Data leaderboard (GitHub + Confluence + Score) -->
+        <div id="githubDataDetailSection" class="rounded-2xl border border-slate-700/50 bg-slate-900/30 backdrop-blur-xl shadow-2xl overflow-hidden mb-10">
+            <div class="border-b border-white/5 px-5 py-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Dev Data</h3>
+                    <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Leaderboard · Sorted by Score</span>
+                </div>
+                <p class="lb-header-blurb mt-2 w-full max-w-none">GitHub activity + Confluence docs for selected sprints. Score (0–10) uses the same Dev Data weights as the main dashboard (delivery, GitHub signals, consistency, AI tools, etc.).</p>
+            </div>
+            <div class="p-4 overflow-x-auto">
+                <div class="dev-leaderboard-table-wrap rounded-xl overflow-hidden">
+                    <table class="github-metrics-table w-full text-xs font-medium min-w-[700px]" style="table-layout: fixed">
+                        <colgroup>
+                            <col style="width: 11%">
+                            <col style="width: 30%">
+                            <col style="width: 7%">
+                            <col style="width: 9%">
+                            <col style="width: 10%">
+                            <col style="width: 10%">
+                            <col style="width: 8%">
+                            <col style="width: 15%">
+                        </colgroup>
+                        <thead>
+                            <tr class="border-b border-white/10 text-slate-400 uppercase tracking-wider text-[10px] bg-white/5">
+                                <th class="py-3.5 px-4 font-black text-left">Name</th>
+                                <th class="py-3.5 px-4 font-black text-left">Repositories</th>
+                                <th class="py-3.5 px-4 font-black gh-num tabular-nums">PRs</th>
+                                <th class="py-3.5 px-4 font-black gh-num tabular-nums">Commits</th>
+                                <th class="py-3.5 px-4 font-black gh-num tabular-nums">Lines (+)</th>
+                                <th class="py-3.5 px-4 font-black gh-num tabular-nums">Lines (−)</th>
+                                <th class="py-3.5 px-4 font-black gh-num tabular-nums" title="Confluence pages created + edited">Docs</th>
+                                <th class="py-3.5 px-4 font-black gh-num tabular-nums">Score (0–10)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="githubLeaderboardDetailBody" class="text-slate-300">
+                            <tr><td colspan="8" class="py-8 text-center text-slate-500 italic">No dev data for selected range.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- QA Leaderboard (scoped to this project) -->
+        <div id="qaDataDetailSection" class="rounded-2xl border border-emerald-700/30 bg-slate-900/30 backdrop-blur-xl shadow-2xl overflow-hidden mb-10">
+            <div class="relative border-b border-white/5 overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-r from-emerald-950/40 via-transparent to-teal-950/30 pointer-events-none"></div>
+                <div class="relative px-5 py-3">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 rounded-lg bg-emerald-500/15 border border-emerald-500/20">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">QA Data</h3>
+                                <p class="lb-qa-detail-subtitle mt-0.5 w-full max-w-none">QA assignee performance from Jira QA fields &amp; TestRail — scoped to this project</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 text-[9px] font-bold uppercase tracking-widest">
+                            <span class="text-emerald-400/80 flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span> Stellar 90+</span>
+                            <span class="text-blue-400/80 flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-full bg-blue-400"></span> Surge 70+</span>
+                            <span class="text-amber-400/80 flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-full bg-amber-400"></span> Cruise 50+</span>
+                            <span class="text-rose-300/80 flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-full bg-rose-400"></span> Emerging</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 overflow-x-auto">
+                <div class="dev-leaderboard-table-wrap rounded-xl overflow-hidden">
+                    <table class="github-metrics-table w-full text-xs font-medium min-w-[760px]" style="table-layout: fixed">
+                        <colgroup>
+                            <col style="width: 5%">
+                            <col style="width: 14%">
+                            <col style="width: 7%">
+                            <col style="width: 7%">
+                            <col style="width: 8%">
+                            <col style="width: 6%">
+                            <col style="width: 7%">
+                            <col style="width: 7%">
+                            <col style="width: 7%">
+                            <col style="width: 9%">
+                            <col style="width: 23%">
+                        </colgroup>
+                        <thead>
+                            <tr class="border-b border-white/10 text-slate-400 uppercase tracking-wider text-[10px] bg-white/5">
+                                <th class="align-middle py-3.5 px-3 font-black text-center">#</th>
+                                <th class="align-middle py-3.5 px-3 font-black text-left">Name</th>
+                                <th class="align-middle py-3.5 px-2 font-black text-center">QA Pts</th>
+                                <th class="align-middle py-3.5 px-2 font-black text-center">Tickets</th>
+                                <th class="align-middle py-3.5 px-2 font-black text-center">Pts / Ticket</th>
+                                <th class="align-middle py-3.5 px-2 font-black text-center" title="Confluence pages">Docs</th>
+                                <th class="align-middle py-3.5 px-2 font-black text-center" title="TestRail cases authored">TR Cases</th>
+                                <th class="align-middle py-3.5 px-2 font-black text-center" title="TestRail runs created">TR Runs</th>
+                                <th class="align-middle py-3.5 px-2 font-black text-center" title="TestRail plans created">TR Plans</th>
+                                <th class="align-middle py-3.5 px-2 font-black text-center">QA Score</th>
+                                <th class="align-middle py-3.5 px-3 font-black text-left pl-4">Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qaLeaderboardDetailBody" class="text-slate-300">
+                            <tr><td colspan="10" class="py-8 text-center text-slate-500 italic">No QA data for selected range.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="lb-header-blurb mt-3 w-full max-w-none px-1">
+                    <strong class="text-slate-500">QA Score</strong> = weighted blend of the same factors (defaults: 30/20/20/15/10/5). Weights and Stellar/Surge/Cruise thresholds are set in <strong class="text-slate-600">Admin → Configure weights</strong>. Normalized within the selected sprint range.
+                </p>
+            </div>
+        </div>
+
+        <div class="card group mb-10 w-full">
+            <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6 group-hover:text-red-400 transition-colors">Anomalies &amp; Follow-ups</h3>
+            <div id="anomalyContainer" class="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2"></div>
+        </div>
+
+        <div class="card overflow-hidden p-0 mb-10">
+             <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-900/80 text-[10px] uppercase tracking-widest text-slate-400">
+                    <tr>
+                        <th class="p-5">Review Date</th>
+                        <th class="p-5 text-right tabular-nums">Points</th>
+                        <th class="p-5 text-right tabular-nums">Success Rate</th>
+                        <th class="p-5 text-right tabular-nums">Bugs (C/O)</th>
+                        <th class="p-5 text-right tabular-nums">Cycle Time</th>
+                        <th class="p-5 text-right tabular-nums">Bug Fix Rate</th>
+                        <th class="p-5 text-right tabular-nums">Carry-over %</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody" class="text-sm"></tbody>
+            </table>
+        </div>
+    </div>
+    <script src="js/constants.js"></script>
+    <script src="js/dashboard-scoring-merge.js"></script>
+    <script src="js/ui/typewriter.js"></script>
+    <script src="js/ui/scoring-guide.js"></script>
+    <script src="js/ui/chart-zoom.js"></script>
+    <script src="js/ai-devtools-context.js"></script>
+    <script src="js/rVeloSyncurce-score-compute.js"></script>
+    <script src="project-script.js"></script>
+    <script>
+      (function () {
+        var KEY = 'dashboard-theme';
+        var btn = document.getElementById('projectDetailThemeToggle');
+        var iconSun = document.getElementById('projectDetailThemeIconSun');
+        var iconMoon = document.getElementById('projectDetailThemeIconMoon');
+        function syncIcons() {
+          var dark = document.documentElement.classList.contains('dark');
+          if (iconSun && iconMoon) {
+            iconSun.classList.toggle('hidden', !dark);
+            iconMoon.classList.toggle('hidden', dark);
+          }
+          if (btn) {
+            btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            btn.title = dark ? 'Switch to light theme' : 'Switch to dark theme';
+          }
+        }
+        function applyTheme(t) {
+          var dark = t === 'dark';
+          try { localStorage.setItem(KEY, t); } catch (e) {}
+          document.documentElement.classList.toggle('theme-light', !dark);
+          document.documentElement.classList.toggle('dark', dark);
+          syncIcons();
+          if (typeof window.refreshProjectDetailChartsForTheme === 'function') {
+            try { window.refreshProjectDetailChartsForTheme(); } catch (e) {}
+          }
+        }
+        syncIcons();
+        if (btn) {
+          btn.addEventListener('click', function () {
+            var next = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+            applyTheme(next);
+          });
+        }
+      })();
+    </script>
+    <script>
+      (function() {
+        fetch('/api/me', { credentials: 'same-origin' }).then(function(r) {
+          if (r.ok) return r.json();
+          throw new Error('not authenticated');
+        }).then(function(data) {
+          if (!data || !data.authenticated) return;
+          var raw = (data.name != null && String(data.name).trim()) || (data.username != null && String(data.username).trim()) || '';
+          if (!raw) return;
+          document.getElementById('ssoLoginLink').classList.add('hidden');
+          document.getElementById('ssoUserInfo').classList.remove('hidden');
+          document.getElementById('ssoUserName').textContent = raw;
+        }).catch(function() {});
+      })();
+    </script>
+    <script src="/js/model-picker.js" defer></script>
+    <!-- Chatbot module — remove this line + the chatbot/ folder to uninstall -->
+    <script src="/chatbot/ui/widget.js" defer></script>
+</body>
+</html>
