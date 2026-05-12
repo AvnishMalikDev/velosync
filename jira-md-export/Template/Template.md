@@ -54,7 +54,7 @@ WORK_EPIC_TABLE
 
 - [x] Stories/tickets available: Yes  
 - [ ] Capacity: All Team available 
-- [ ] Blockers: External API latency (rVeloSynclved mid-week)  
+- [ ] Blockers: External API latency (resolved mid-week)  
 - **Notes:**  
   Stable sprint with minor dependency risk early in the week.
 

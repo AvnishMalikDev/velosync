@@ -72,7 +72,7 @@
    - [No Work Classification](#no-work-classification)
    - [Mid-Sprint Additions (Scope Creep)](#mid-sprint-additions-scope-creep)
    - [Missing Priority](#missing-priority)
-   - [UnrVeloSynclved Blockers](#unrVeloSynclved-blockers)
+   - [Unresolved Blockers](#unresolved-blockers)
    - [Carry-over](#carry-over-hygiene)
 8. [Copilot Usage](#copilot-usage)
 9. [Cursor Usage](#cursor-usage)
@@ -554,7 +554,7 @@ _(rounded to 2 decimal places; shown as 0 when no story points were completed)_
 
 ### Bug Fix Rate
 
-**What it is:** The percentage of bugs that were closed (rVeloSynclved) relative to the number of bugs opened in the sprint.
+**What it is:** The percentage of bugs that were closed (resolved) relative to the number of bugs opened in the sprint.
 
 **Source:** `bugsOpened` and `bugsClosed` from the sprint markdown.
 
@@ -633,7 +633,7 @@ Otherwise → 100 − (100 × (carryOver − 10) / (30 − 10))
 
 ### Quality Score
 
-**Weight:** 20% — measures defect rVeloSynclution effectiveness.
+**Weight:** 20% — measures defect resolution effectiveness.
 
 **Formula:** `min(100, max(0, Bug Fix Rate %))`
 
@@ -720,7 +720,7 @@ Avg Dwell (days) = Sum of dwell-days in stage across all tickets / Count of tick
 
 ## Dev Score (0–10)
 
-Each developer/rVeloSyncurce is assigned a composite **Dev Score from 0–10**, combining delivery output, GitHub activity, consistency, breadth of involvement, Cursor leaderboard presence, Copilot individual usage, and AI tool adoption. Scores update with the current filter.
+Each developer/resource is assigned a composite **Dev Score from 0–10**, combining delivery output, GitHub activity, consistency, breadth of involvement, Cursor leaderboard presence, Copilot individual usage, and AI tool adoption. Scores update with the current filter.
 
 ### Overall Formula
 
@@ -823,7 +823,7 @@ normConfluence  = percentileRank(confluencePages, all developers' confluencePage
 
 **Interpretation:** Developers who consistently document architecture, processes, or design decisions earn a higher Confluence score relative to peers. A developer with 0 pages still receives a baseline percentile rank (not penalised beyond ranking below active documenters).
 
-**Display:** Shown as a "Docs" column in the Dev Leaderboard table and QA Board, and appears in the score breakdown tooltip. On the RVeloSyncurce Insights page, the Sprint Performance table includes a per-sprint Docs column.
+**Display:** Shown as a "Docs" column in the Dev Leaderboard table and QA Board, and appears in the score breakdown tooltip. On the Resource Insights page, the Sprint Performance table includes a per-sprint Docs column.
 
 ---
 
@@ -921,7 +921,7 @@ penalty = (unestimatedRate × 0.20)
         + (unclassifiedRate × 0.15)
         + (midSprintAddedRate × 0.20)
         + (missingPriorityRate × 0.15)
-        + (unrVeloSynclvedBlockerRate × 0.10)
+        + (unresolvedBlockerRate × 0.10)
         + (carryOverRate × 0.20)
 
 Hygiene Score = max(0, round(100 − penalty × 100))
@@ -1021,13 +1021,13 @@ Each `rate` is the fraction of tickets in the sprint that violate the given dime
 
 ---
 
-### UnrVeloSynclved Blockers
+### Unresolved Blockers
 
 **Weight in score:** 10%
 
 **What it flags:** Tickets marked as a **blocker** (priority = Blocker, issue type = Impediment, or flagged with a blocker/impediment label) that are **not in a Done status** at the time of export.
 
-**Why it matters:** Active unrVeloSynclved blockers are the most direct risk signal in a sprint. Even a single unrVeloSynclved blocker is flagged as 🔴, since it represents work that is actively impeding progress and should be escalated.
+**Why it matters:** Active unresolved blockers are the most direct risk signal in a sprint. Even a single unresolved blocker is flagged as 🔴, since it represents work that is actively impeding progress and should be escalated.
 
 **Threshold:** Any count > 0 = 🔴. Count = 0 = 🟢. (No proportional threshold — a blocker is a blocker regardless of total ticket count.)
 
@@ -1159,7 +1159,7 @@ _(rounded to nearest integer)_
 
 **Source:** `bugsOpened` and `bugsClosed` per sprint.
 
-**Interpretation:** Consistently more bugs closed than opened indicates a healthy defect rVeloSynclution trend. Persistent "opened > closed" is a quality risk signal.
+**Interpretation:** Consistently more bugs closed than opened indicates a healthy defect resolution trend. Persistent "opened > closed" is a quality risk signal.
 
 ---
 

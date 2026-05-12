@@ -561,7 +561,7 @@ html.theme-light .cb-send {
  * Stale-row guard: when the server's qa-history doesn't have a row for the
  * bubble's qaId (eg, server restarted), we leave the actions visible but
  * click-blocked with a hover hint. Distinct from the pending state which
- * rVeloSynclves quickly; stale is "permanent" for that bubble.
+ * resolves quickly; stale is "permanent" for that bubble.
  * ──────────────────────────────────────────────────────────────────────── */
 .cb-msg-actions.cb-msg-actions-stale {
     opacity: 0.32;

@@ -959,11 +959,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .qa-data-sort.sort-asc::after  { content: ' \2191'; opacity: 0.9; }
 .qa-data-sort.sort-desc::after { content: ' \2193'; opacity: 0.9; }
 
-/* RVeloSyncurce Score table: center-align score column */
-.rVeloSyncurce-score-col {
+/* Resource Score table: center-align score column */
+.resource-score-col {
     text-align: center !important;
 }
-.rVeloSyncurce-score-col .gh-num-block {
+.resource-score-col .gh-num-block {
     display: block !important;
     text-align: center !important;
 }

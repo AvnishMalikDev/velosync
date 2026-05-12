@@ -1,11 +1,11 @@
 ﻿/**
- * RVeloSyncurce Insights — light theme.
+ * Resource Insights — light theme.
  * Activated by the same `html.theme-light` toggle as the main dashboard
- * (localStorage key: "dashboard-theme"). Loaded AFTER rVeloSyncurce-style.css so
+ * (localStorage key: "dashboard-theme"). Loaded AFTER resource-style.css so
  * these rules win via specificity + source order for identical selectors.
  *
  * Goal: strong black-on-white readability across every card, pill, table,
- * loader, and dropdown on the RVeloSyncurce Insights page.
+ * loader, and dropdown on the Resource Insights page.
  */
 
 /* ──────────────────────────────────────────────────────────────
@@ -256,7 +256,7 @@ html.theme-light ::-webkit-scrollbar-thumb        { background: #cbd5e1; }
 html.theme-light ::-webkit-scrollbar-thumb:hover  { background: #94a3b8; }
 
 /* ──────────────────────────────────────────────────────────────
-   Tailwind utility overrides used inside RVeloSyncurceInsights.html
+   Tailwind utility overrides used inside ResourceInsights.html
    (header, inputs, pills, error banner, etc.)
    ────────────────────────────────────────────────────────────── */
 html.theme-light .border-slate-800\/50 { border-color: rgba(148, 163, 184, 0.45) !important; }

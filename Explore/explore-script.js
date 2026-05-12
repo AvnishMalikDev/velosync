@@ -357,7 +357,7 @@ function classifyStatusByName(lcName) {
   if (DONE_NAMES.has(lcName)) return 'done';
   if (IN_PROGRESS_NAMES.has(lcName)) return 'in_progress';
   if (/progress|develop|coding|implement|active|review|test|qa/i.test(lcName)) return 'in_progress';
-  if (/done|closed|rVeloSynclv|releas|complet|deploy|accept|stag|prod|deliver|verif/i.test(lcName)) return 'done';
+  if (/done|closed|resolv|releas|complet|deploy|accept|stag|prod|deliver|verif/i.test(lcName)) return 'done';
   return 'todo';
 }
 

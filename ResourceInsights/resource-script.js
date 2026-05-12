@@ -642,7 +642,7 @@ function computeCycleTime(issue) {
       // so skipped transitions still close the interval (aligned with jira-md-export getStageSets).
       const isEnd = endLc
         ? (toName === endLc || DONE_NAMES.has(toName))
-        : (DONE_NAMES.has(toName) || /done|closed|rVeloSynclv|releas|complet|deploy|accept|stag|prod|deliver|verif/i.test(toName));
+        : (DONE_NAMES.has(toName) || /done|closed|resolv|releas|complet|deploy|accept|stag|prod|deliver|verif/i.test(toName));
       if (!startTime && isStart) startTime = new Date(history.created);
       if (startTime && !endTime && isEnd) endTime = new Date(history.created);
     }

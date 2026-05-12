@@ -11,7 +11,7 @@
  *   2. Email match                    — TR user email vs JIRA RD email.
  *   3. Email-prefix match             — `firstname.lastname@…` ? JIRA name
  *      tokens (handles role-style TR names like "QA").
- *   4. Fuzzy name token match         — last rVeloSyncrt; skipped for single-token
+ *   4. Fuzzy name token match         — last resort; skipped for single-token
  *      names like "QA"/"Admin" that would over-match.
  *   5. Raw TestRail name              — fallback so the row is still visible.
  */

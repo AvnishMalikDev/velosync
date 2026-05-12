@@ -68,7 +68,7 @@ graph TB
 
     subgraph Files["📂 Shared Read-Only Files  (../output/ + ../jira-md-export/)"]
         MD["output/*.md\n(sprint reports)"]
-        RD["output/rVeloSyncurce-directory.json"]
+        RD["output/resource-directory.json"]
         CP["output/copilotdata.json"]
         CUR["output/cursordata.json"]
         PROJ["jira-md-export/projects.json"]
@@ -153,8 +153,8 @@ sequenceDiagram
     S-->>A: top-K context chunks
 
     Note over A: 2 — Entity pre-pass (optional)
-    A->>T: preRVeloSynclveEntities (lookup_person etc.)
-    T-->>A: rVeloSynclved entities
+    A->>T: preResolveEntities (lookup_person etc.)
+    T-->>A: resolved entities
 
     Note over A: 3 — LLM streaming loop (max 4 iters)
     loop tool-calling rounds
@@ -260,8 +260,8 @@ graph LR
 
 | Tool | Source | Use case |
 |---|---|---|
-| `lookup_person` | `output/rVeloSyncurce-directory.json` (fuzzy match) | RVeloSynclve a name to email + JIRA accountId + GitHub login |
-| `list_people` | `output/rVeloSyncurce-directory.json` (bulk) | "Who is on team X", "list QA managers" without retrieval |
+| `lookup_person` | `output/resource-directory.json` (fuzzy match) | Resolve a name to email + JIRA accountId + GitHub login |
+| `list_people` | `output/resource-directory.json` (bulk) | "Who is on team X", "list QA managers" without retrieval |
 | `query_jira` | live JIRA REST | "Open tickets for X", "what's in HDE this sprint", JQL queries |
 | `query_github` | live GitHub search (+ `getGitHubMetricsForUser` on richMetrics) | Recent PRs / commits for one person |
 | `query_copilot` | cached `output/copilotdata.json` | Copilot leaderboard, lines accepted, acceptance rate |
@@ -278,9 +278,9 @@ graph LR
 - `../jira-md-export/.env` — JIRA, GitHub, Confluence (shares JIRA creds), TestRail, ENT (Copilot enterprise). Read via `dotenv` with an explicit path. Never copied, never written.
 - `../jira-md-export/get-github-metrics.js`, `get-confluence-data.js`, `get-testrail-data.js` — imported via dynamic `import()` for live tool calls.
 - `../output/*.md` — sprint reports (for embedding + `query_sprint`).
-- `../output/rVeloSyncurce-directory.json` — for the person lookup + `list_people`.
+- `../output/resource-directory.json` — for the person lookup + `list_people`.
 - `../output/copilotdata.json`, `cursordata.json` — refreshed by the daily `node jira-md-export/index.js` run; read directly by the tools.
-- `../jira-md-export/projects.json` — for rVeloSynclving project name → TestRail project IDs and `list_projects`.
+- `../jira-md-export/projects.json` — for resolving project name → TestRail project IDs and `list_projects`.
 - Root `.env` — for `OPENROUTER_API_KEY` (already loaded by `server.js` at startup).
 - `../server.js` injects `requireAuth` and `openRouterFetch` into our `register(app, deps)` entry point.
 

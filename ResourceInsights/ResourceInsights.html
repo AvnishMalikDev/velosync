@@ -1,16 +1,16 @@
 ﻿<!DOCTYPE html>
-<html lang="en" class="theme-light" data-brand-title-suffix="RVeloSyncurce Insights">
+<html lang="en" class="theme-light" data-brand-title-suffix="Resource Insights">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RVeloSyncurce Insights | VeloSync</title>
+    <title>Resource Insights | VeloSync</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="../js/chart-theme-satellite.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="rVeloSyncurce-style.css">
-    <link rel="stylesheet" href="rVeloSyncurce-light.css">
+    <link rel="stylesheet" href="resource-style.css">
+    <link rel="stylesheet" href="resource-light.css">
     <script src="../js/theme-init.js"></script>
 </head>
 <body>
@@ -23,7 +23,7 @@
                     <img src="/logo.svg" alt="" data-brand-logo data-default-logo="/logo.svg" class="w-8 h-8 object-contain" style="display:block;margin:auto;">
                 </a>
                 <div class="min-w-0">
-                    <h1 class="text-xl font-black VeloSync-gradient uppercase tracking-tighter">RVeloSyncurce Insights</h1>
+                    <h1 class="text-xl font-black VeloSync-gradient uppercase tracking-tighter">Resource Insights</h1>
                     <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span class="mono text-purple-400 text-[10px] font-bold bg-purple-950/30 px-2 py-0.5 rounded border border-purple-900/30 tracking-widest">Individual Contributor Analytics</span>
                         <span class="text-slate-500 font-bold text-[10px] uppercase tracking-widest">JIRA &middot; GitHub &middot; Cursor &middot; Copilot &middot; Sprint Data</span>
@@ -40,7 +40,7 @@
         <div id="directoryOverlay" class="directory-overlay hidden">
             <div class="directory-overlay-card">
                 <div class="directory-overlay-spinner"></div>
-                <p class="directory-overlay-title">Fetching RVeloSyncurce Names&hellip;</p>
+                <p class="directory-overlay-title">Fetching Resource Names&hellip;</p>
                 <p class="directory-overlay-sub">Syncing employee directory from JIRA &mdash; this happens once a week</p>
                 <div class="directory-overlay-bar-track">
                     <div class="directory-overlay-bar-fill"></div>
@@ -55,7 +55,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
-                    <h2 class="text-sm font-black text-white uppercase tracking-widest">Search RVeloSyncurce</h2>
+                    <h2 class="text-sm font-black text-white uppercase tracking-widest">Search Resource</h2>
                 </div>
                 <span id="directoryStatus" class="directory-status"></span>
             </div>
@@ -102,7 +102,7 @@
         <!-- ───────── Loader Overlay ───────── -->
         <div id="loader" class="loader-overlay hidden">
             <div class="spinner"></div>
-            <p class="loader-step" id="loaderStep">Searching for rVeloSyncurce&hellip;</p>
+            <p class="loader-step" id="loaderStep">Searching for resource&hellip;</p>
             <div class="progress-track">
                 <div class="progress-bar" id="progressBar" style="width:0%"></div>
             </div>
@@ -186,7 +186,7 @@
                     <div class="kpi-sub" id="kpiReportedSub"></div>
                 </div>
                 <div class="card kpi-card border-l-4 border-l-indigo-500">
-                    <div class="kpi-label">RVeloSynclution Rate</div>
+                    <div class="kpi-label">Resolution Rate</div>
                     <div class="kpi-value text-indigo-400" id="kpiResRate">—</div>
                     <div class="kpi-sub" id="kpiResRateSub"></div>
                 </div>
@@ -215,7 +215,7 @@
             <div id="chartsRow2" class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                 <div class="card chart-card">
                     <h3 class="chart-title">Weekly Throughput</h3>
-                    <p class="chart-subtitle">Tickets rVeloSynclved per week</p>
+                    <p class="chart-subtitle">Tickets resolved per week</p>
                     <div class="chart-wrap"><canvas id="throughputChart"></canvas></div>
                 </div>
                 <div class="card chart-card">
@@ -271,7 +271,7 @@
                             </div>
                         </div>
                         <div id="cursorNoData" class="hidden ai-no-data">
-                            <p>No Cursor activity found for this rVeloSyncurce.</p>
+                            <p>No Cursor activity found for this resource.</p>
                         </div>
                     </div>
 
@@ -396,7 +396,7 @@
         </div>
     </div>
 
-    <script src="rVeloSyncurce-script.js"></script>
+    <script src="resource-script.js"></script>
     <script src="../js/apply-branding.js" defer></script>
 </body>
 </html>

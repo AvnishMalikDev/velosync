@@ -6,11 +6,11 @@ Section **2.3 Github Metrics** in every generated sprint markdown file is
 populated by querying GitHub's search API (`author:<login>`). To do that we
 need a correct GitHub login for every JIRA assignee.
 
-The pipeline rVeloSynclves each JIRA display name in this order:
+The pipeline resolves each JIRA display name in this order:
 
 1. **`github-users.json` override (this file).** Highest precedence — use for
    one-off exceptions or names that must not follow the directory.
-2. **`output/rVeloSyncurce-directory.json` — optional `githubLogin` on each user.**
+2. **`output/resource-directory.json` — optional `githubLogin` on each user.**
    On every **`node jira-md-export/index.js`** run, after org members are fetched,
    the export **auto-fills** missing `githubLogin` values using the same fuzzy +
    derived logic as below (no hand-editing required for names that match the org).
@@ -23,13 +23,13 @@ The pipeline rVeloSynclves each JIRA display name in this order:
 4. **Derived `firstname-lastname-VeloSync` fallback, gated on org membership.**
    Only accepted if that derived login is actually a member of the org AND
    is not a known bot/service account. Otherwise the name is recorded as
-   "unrVeloSynclved" and the metrics cells show zeros with a note — the pipeline
-   then prints the full list of unrVeloSynclved names at the end of the run.
+   "unresolved" and the metrics cells show zeros with a note — the pipeline
+   then prints the full list of unresolved names at the end of the run.
 
 Historically, a weak fallback attributed the commits of a single bot/service
 account to many different developers (the same `0 PRs / 533 commits /
 +3408 / -1115` signature appearing across 10+ people in one sprint). Prefer
-**`githubLogin` on the rVeloSyncurce directory** for team-wide coverage, and keep
+**`githubLogin` on the resource directory** for team-wide coverage, and keep
 this file for overrides.
 
 ## Format
@@ -47,12 +47,12 @@ this file for overrides.
 - **Value** = the person's GitHub login (the slug after `github.com/` on
   their profile URL). Do not include `@` or any domain.
 
-On **`output/rVeloSyncurce-directory.json`**, add the same value as a string field
+On **`output/resource-directory.json`**, add the same value as a string field
 `githubLogin` on the user object whose `displayName` matches JIRA (see the
-main dashboard rVeloSyncurce-directory sync).
+main dashboard resource-directory sync).
 
 - Keys starting with `_` are treated as comments and ignored.
-- Empty-string values are ignored (so a placeholder entry doesn't rVeloSynclve
+- Empty-string values are ignored (so a placeholder entry doesn't resolve
   to the empty string).
 
 ## How to fill it in
@@ -62,8 +62,8 @@ main dashboard rVeloSyncurce-directory sync).
 
    ```
    ========================================
-     UnrVeloSynclved GitHub logins: N
-     Set githubLogin in output/rVeloSyncurce-directory.json or add github-users.json ...
+     Unresolved GitHub logins: N
+     Set githubLogin in output/resource-directory.json or add github-users.json ...
    ========================================
      - Cory Baker
      - David Miller (c)
@@ -71,11 +71,11 @@ main dashboard rVeloSyncurce-directory sync).
      ...
    ```
 
-3. For each unrVeloSynclved person, find their GitHub login (ask them, check a
+3. For each unresolved person, find their GitHub login (ask them, check a
    recent commit, or look them up in the org member list).
-4. Add the login in either place (prefer the rVeloSyncurce directory for most people):
+4. Add the login in either place (prefer the resource directory for most people):
 
-   - In **`output/rVeloSyncurce-directory.json`**, find the user by `email` or
+   - In **`output/resource-directory.json`**, find the user by `email` or
      `displayName` and set `"githubLogin": "cbaker-VeloSync"` (string, no `@`).
 
    - Or add an entry to **`github-users.json`**:
@@ -87,8 +87,8 @@ main dashboard rVeloSyncurce-directory sync).
    }
    ```
 
-5. Re-run the pipeline (or force-refresh the rVeloSyncurce directory from the app
-   if you only edited `githubLogin` there). The "UnrVeloSynclved GitHub logins"
+5. Re-run the pipeline (or force-refresh the resource directory from the app
+   if you only edited `githubLogin` there). The "Unresolved GitHub logins"
    block should shrink each iteration until it's empty.
 
 ## Sanity-check your entries
@@ -101,7 +101,7 @@ $env:ORG = "VeloSync-development"
 node jira-md-export/debug-token-check.js "Cory Baker"
 ```
 
-The script prints the rVeloSynclved login, what GitHub search returns for them,
+The script prints the resolved login, what GitHub search returns for them,
 and flags anything suspicious (e.g. bot detection hit, zero commits, etc.).
 
 ## Do NOT add bots / service accounts

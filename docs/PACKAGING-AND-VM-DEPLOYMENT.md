@@ -29,7 +29,7 @@ The main server file does not appear to spawn the export pipeline automatically;
 
 ## Design follow-ups (when we pick this up)
 
-1. **Introduce `DATA_ROOT` / `VELOSYNC_HOME`** — rVeloSynclve `.env`, rbac, connectors, uploads, ssl, projects.json, output under one writable root; keep code read-only under install dir.
+1. **Introduce `DATA_ROOT` / `VELOSYNC_HOME`** — resolve `.env`, rbac, connectors, uploads, ssl, projects.json, output under one writable root; keep code read-only under install dir.
 2. **Unify or document deps** — `npm ci` in both `Product` and `jira-md-export`, or **npm workspaces** / pnpm monorepo to kill duplicate `dotenv` majors.
 3. **Service + export orchestration** — NSSM/winsw/`node-windows` for `node server.js`; scheduled task or in-app job for exports.
 4. **Hardening doc** — bootstrap `admin`/`admin`, `.env` secrets, `rejectUnauthorized: false` in some exporter paths (corporate MITM), HTTPS restart after SSL upload.

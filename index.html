@@ -6,6 +6,14 @@
     <title>Product & Technology Team Insights</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Use class-based dark mode so the in-app theme toggle (which sets
+        // `class="dark"` on <html> via theme-init.js) drives every Tailwind
+        // `dark:` variant in the markup. Without this the CDN defaults to
+        // `media` strategy and dark: utilities fire off the OS preference,
+        // leaving in-app dark mode looking half-themed (white panels etc.).
+        tailwind.config = { darkMode: 'class' };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -90,10 +98,10 @@
                                     <div class="admin-tools-desc">Analyze any JIRA board</div>
                                 </div>
                             </a>
-                            <a href="/RVeloSyncurceInsights/RVeloSyncurceInsights.html" target="_blank" rel="noopener noreferrer" class="admin-tools-item" style="text-decoration:none">
+                            <a href="/ResourceInsights/ResourceInsights.html" target="_blank" rel="noopener noreferrer" class="admin-tools-item" style="text-decoration:none">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                                 <div>
-                                    <div class="admin-tools-label">RVeloSyncurce Insights</div>
+                                    <div class="admin-tools-label">Resource Insights</div>
                                     <div class="admin-tools-desc">Individual contributor metrics</div>
                                 </div>
                             </a>
@@ -217,15 +225,15 @@
                             </div>
                             <div id="healthScoreTrendLegend" class="flex items-center gap-2.5 flex-wrap text-[9px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-500">
                                 <span class="inline-flex items-center gap-1.5">
-                                    <span class="inline-block h-2.5 w-2.5 rounded-full" style="background: rgba(100, 116, 139, 0.55);"></span>
+                                    <span class="inline-block h-2.5 w-2.5 rounded-full bg-slate-700/40 dark:bg-slate-300/40"></span>
                                     Oldest Sprint
                                 </span>
                                 <span class="inline-flex items-center gap-1.5">
-                                    <span class="inline-block h-2.5 w-2.5 rounded-full" style="background: rgba(100, 116, 139, 0.78);"></span>
+                                    <span class="inline-block h-2.5 w-2.5 rounded-full bg-slate-700/70 dark:bg-slate-300/70"></span>
                                     Previous Sprint
                                 </span>
                                 <span class="inline-flex items-center gap-1.5">
-                                    <span class="inline-block h-2.5 w-2.5 rounded-full" style="background: rgba(15, 23, 42, 0.92);"></span>
+                                    <span class="inline-block h-2.5 w-2.5 rounded-full bg-slate-800 dark:bg-slate-200"></span>
                                     Current Sprint
                                 </span>
                             </div>
@@ -270,7 +278,7 @@
                         </button>
                     </div>
                 </div>
-                <div id="orgAiResponse" class="bg-white rounded-xl border border-slate-200 px-4 py-3 text-slate-500 text-sm leading-relaxed font-medium italic shadow-sm">
+                <div id="orgAiResponse" class="bg-white dark:bg-white/[0.03] rounded-xl border border-slate-200 dark:border-white/10 px-4 py-3 text-slate-500 dark:text-slate-400 text-sm leading-relaxed font-medium italic shadow-sm dark:shadow-none">
                     Click "Generate AI Summary" to analyse all currently visible projects at org level.
                 </div>
             </div>
@@ -495,7 +503,7 @@
 
         <!-- AI Assistant: GitHub Data, Copilot, Cursor Usage -->
         <div id="aiAssistantSection" class="hidden mb-10 space-y-6">
-            <!-- Dev Data: GitHub metrics (MD section 2.3) + RVeloSyncurce Score column -->
+            <!-- Dev Data: GitHub metrics (MD section 2.3) + Resource Score column -->
             <div id="githubDataDashboard" class="rounded-2xl border border-slate-700/50 bg-slate-900/30 backdrop-blur-xl shadow-2xl overflow-hidden">
                 <div class="border-b border-white/5 px-5 py-3">
                     <div class="flex flex-wrap items-center justify-between gap-3">
@@ -1089,7 +1097,7 @@
     <script src="js/ui/scoring-guide.js"></script>
     <script src="js/ui/chart-zoom.js"></script>
     <script src="js/ai-devtools-context.js"></script>
-    <script src="js/rVeloSyncurce-score-compute.js"></script>
+    <script src="js/resource-score-compute.js"></script>
     <script src="script.js"></script>
     <script>
       (function() {

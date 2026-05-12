@@ -20,9 +20,9 @@ jira-md-export/
    │  ├─ jira-auth.js             # JIRA Basic-auth + headers
    │  └─ http.js                  # Tiny shared fetch helpers
    ├─ connectors/                 # One folder per external system
-   │  ├─ jira/                    # client, fields, boards, sprints, issues, kanban, rVeloSyncurce-directory
+   │  ├─ jira/                    # client, fields, boards, sprints, issues, kanban, resource-directory
    │  ├─ confluence/              # Pages activity per user
-   │  ├─ github/                  # Repo metrics + login rVeloSynclution
+   │  ├─ github/                  # Repo metrics + login resolution
    │  ├─ copilot/                 # Enterprise + user-level Copilot reports
    │  ├─ cursor/                  # Leaderboard, daily usage, AI edits
    │  └─ testrail/                # request, metrics, user-sync, user-fetch
@@ -72,7 +72,7 @@ npm start
 | `npm run copilot` | Refresh just `output/copilotdata.json` |
 | `npm run cursor` | Refresh just `output/cursordata.json` |
 | `npm run confluence` | Smoke-test Confluence connectivity |
-| `npm run sync:testrail-users` | Map TestRail user IDs onto `rVeloSyncurce-directory.json` |
+| `npm run sync:testrail-users` | Map TestRail user IDs onto `resource-directory.json` |
 | `npm run fetch:testrail-users` | Refresh `output/testrail-users.json` cache |
 | `npm run debug:tokens -- --user "First Last"` | Cross-system token + identity diagnostic |
 | `npm run debug:work-classification ABC-123` | Inspect Work Classification fields on one issue |
@@ -102,7 +102,7 @@ npm start
 
 - **`projects.json`** — Maps Jira board IDs to project names, managers, and optional `testRailProjectIds` for TestRail integration.
 - **`github-users.json`** — Optional per-name override mapping Jira display names to GitHub logins (highest precedence).
-- **`output/rVeloSyncurce-directory.json`** — Jira user directory cache; per-user **`githubLogin`** is used for GitHub metrics. Missing values are **auto-filled** at the start of each `index.js` run (fuzzy + derived against the GitHub org); manual edits are optional and preserved on Jira refresh by email (like `testRailUserId`).
+- **`output/resource-directory.json`** — Jira user directory cache; per-user **`githubLogin`** is used for GitHub metrics. Missing values are **auto-filled** at the start of each `index.js` run (fuzzy + derived against the GitHub org); manual edits are optional and preserved on Jira refresh by email (like `testRailUserId`).
 - **`Template/Template.md`** — Markdown template with placeholder tokens for all data sections.
 
 ### Delta mode (`overwriteexistingdatafiles`)

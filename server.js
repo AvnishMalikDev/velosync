@@ -1261,7 +1261,7 @@ app.post('/api/resource/insights', requireAuth, async (req, res) => {
       const cat = i.fields?.status?.statusCategory?.key;
       const name = (i.fields?.status?.name || '').toLowerCase().trim();
       return cat === 'done' || name === 'done' || name === 'closed' || name === 'resolved'
-        || /done|closed|rVeloSynclv|releas|complet|deploy|accept|stag|prod|deliver|verif/.test(name);
+        || /done|closed|resolv|releas|complet|deploy|accept|stag|prod|deliver|verif/.test(name);
     });
     sendProgress('Fetching changelogs\u2026', 38, `${resolvedOnly.length} resolved tickets — loading cycle time history`);
 

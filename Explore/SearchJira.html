@@ -142,7 +142,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                 <div class="card chart-card">
                     <h3 class="chart-title">Cycle Time Distribution</h3>
-                    <p class="chart-subtitle">How long rVeloSynclved tickets took (In Progress &rarr; Done)</p>
+                    <p class="chart-subtitle">How long resolved tickets took (In Progress &rarr; Done)</p>
                     <div class="chart-wrap"><canvas id="cycleTimeChart"></canvas></div>
                 </div>
                 <div class="card chart-card">
@@ -161,7 +161,7 @@
                 </div>
                 <div class="card chart-card">
                     <h3 class="chart-title">Weekly Throughput Trend</h3>
-                    <p class="chart-subtitle">Tickets rVeloSynclved per week</p>
+                    <p class="chart-subtitle">Tickets resolved per week</p>
                     <div class="chart-wrap"><canvas id="throughputChart"></canvas></div>
                 </div>
             </div>
@@ -180,12 +180,12 @@
                                 <tr>
                                     <th class="tbl-th">Assignee</th>
                                     <th class="tbl-th text-center">Open</th>
-                                    <th class="tbl-th text-center">RVeloSynclved</th>
+                                    <th class="tbl-th text-center">Resolved</th>
                                     <th class="tbl-th text-center">Avg / Day</th>
                                     <th class="tbl-th text-center">Avg Cycle Time</th>
                                     <th class="tbl-th text-center">Oldest Open</th>
                                     <th class="tbl-th text-center">Crit/High Open</th>
-                                    <th class="tbl-th text-center">RVeloSynclution Rate</th>
+                                    <th class="tbl-th text-center">Resolution Rate</th>
                                 </tr>
                             </thead>
                             <tbody id="assigneeStatsBody"></tbody>

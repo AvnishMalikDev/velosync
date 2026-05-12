@@ -23,17 +23,17 @@ data source is unavailable). But for full functionality you want all of them.
 | Express app with session middleware | `server.js` | **Yes** |
 | `requireAuth(req, res, next)` middleware | `server.js` | **Yes** |
 | `req.session.account = { username, name }` (Azure AD MSAL pattern) | `server.js` | **Yes** |
-| `requireAdmin` middleware + `rVeloSynclveRoleForAccount(account) -> { role: 'admin' \| 'viewer', ... }` | `server.js` | Recommended (if missing, chatbot falls back to "open" mode and warns in the boot log) |
-| `openRouterFetch(body, key, referer)` async helper that POSTs to `https://openrouter.ai/api/v1/chat/completions` and rVeloSynclves to `{ status, data }` | `server.js` | **Yes** (chatbot does NOT make HTTP itself; the host injects this) |
+| `requireAdmin` middleware + `resolveRoleForAccount(account) -> { role: 'admin' \| 'viewer', ... }` | `server.js` | Recommended (if missing, chatbot falls back to "open" mode and warns in the boot log) |
+| `openRouterFetch(body, key, referer)` async helper that POSTs to `https://openrouter.ai/api/v1/chat/completions` and resolves to `{ status, data }` | `server.js` | **Yes** (chatbot does NOT make HTTP itself; the host injects this) |
 | `OPENROUTER_API_KEY` set in root `.env` | `.env` | **Yes** |
 | `jira-md-export/.env` with JIRA + GitHub creds | sibling folder | **Yes** for JIRA + GitHub tools |
 | `jira-md-export/get-github-metrics.js`, `get-confluence-data.js`, `get-testrail-data.js` | sibling folder | Required for `richMetrics`, Confluence, and TestRail tools |
 | `output/copilotdata.json`, `output/cursordata.json` | sibling folder | Required for Copilot/Cursor tools |
-| `output/rVeloSyncurce-directory.json` | sibling folder | Required for `lookup_person` and Confluence tool |
+| `output/resource-directory.json` | sibling folder | Required for `lookup_person` and Confluence tool |
 | `jira-md-export/projects.json` | sibling folder | Required for TestRail tool by `projectName` |
 | `output/*.md` sprint reports | sibling folder | Required for the embedding index (no MDs → docs retrieval is empty, but agent still works) |
 
-If `requireAdmin` / `rVeloSynclveRoleForAccount` don't exist in this host, **stop
+If `requireAdmin` / `resolveRoleForAccount` don't exist in this host, **stop
 and ask the user**: do they want chatbot to be open to all authenticated
 users, or do they want to add a minimal RBAC layer first? The chatbot's
 admin gate is opt-in; without it the bubble appears for everyone.
@@ -62,7 +62,7 @@ run on a machine with internet access first, then ship the `.cache/` folder.
 ## 3. Wire `chatbot.register()` into the host's `server.js`
 
 Find a spot **after** these are defined: `requireAuth`, `requireAdmin`,
-`rVeloSynclveRoleForAccount`, `openRouterFetch`. Then add this block:
+`resolveRoleForAccount`, `openRouterFetch`. Then add this block:
 
 ```javascript
 // ── Chatbot module (self-contained in chatbot/; remove this block + the chatbot folder to uninstall)
@@ -70,7 +70,7 @@ const chatbot = require('./chatbot/register');
 chatbot.register(app, {
   requireAuth,
   requireAdmin,                                                          // optional — omit for open mode
-  isAdmin: (account) => rVeloSynclveRoleForAccount(account || {}).role === 'admin',  // optional — pairs with requireAdmin
+  isAdmin: (account) => resolveRoleForAccount(account || {}).role === 'admin',  // optional — pairs with requireAdmin
   openRouterFetch,
 });
 ```
@@ -190,7 +190,7 @@ let openRouterModelsCache = null;
 const OPENROUTER_MODELS_TTL_MS = 24 * 60 * 60 * 1000;
 
 function fetchOpenRouterModelsRaw(key) {
-  return new Promise((rVeloSynclve, reject) => {
+  return new Promise((resolve, reject) => {
     const allowInsecure = process.env.ALLOW_INSECURE_TLS === '1' || process.env.ALLOW_INSECURE_TLS === 'true';
     const options = {
       hostname: 'openrouter.ai',
@@ -207,7 +207,7 @@ function fetchOpenRouterModelsRaw(key) {
       let data = '';
       res.on('data', (ch) => { data += ch; });
       res.on('end', () => {
-        try { rVeloSynclve({ status: res.statusCode, data: data ? JSON.parse(data) : {} }); }
+        try { resolve({ status: res.statusCode, data: data ? JSON.parse(data) : {} }); }
         catch (e) { reject(new Error('Invalid JSON from OpenRouter /models')); }
       });
     });
@@ -380,7 +380,7 @@ Then open the dashboard in a browser and verify:
 |---|---|---|
 | `404 /api/chatbot/ask` | Host server didn't pick up the new register call | `pm2 restart` (Node didn't reload) |
 | `404 /api/openrouter/models` | Step 4c skipped | Add the endpoint to `server.js` |
-| Bubble doesn't appear for admins, console shows `widget.js: 200 OK` but blank body | The silent-stub gate is matching admins as non-admins. The `isAdmin` predicate is wrong. | Open `register.js` and inspect what `isAdmin` is being called with. Probably `rVeloSynclveRoleForAccount` expects a different account shape. |
+| Bubble doesn't appear for admins, console shows `widget.js: 200 OK` but blank body | The silent-stub gate is matching admins as non-admins. The `isAdmin` predicate is wrong. | Open `register.js` and inspect what `isAdmin` is being called with. Probably `resolveRoleForAccount` expects a different account shape. |
 | Bubble appears for **non**-admins | `requireAdmin` / `isAdmin` not passed to `chatbot.register` | Pass them in step 3; redeploy |
 | `[chatbot] warmup failed: fetch failed (huggingface.co)` | Behind corp proxy, first-time embedding model download blocked | Pre-cache `chatbot/node_modules/@xenova/transformers/.cache/` from a machine with internet, ship it |
 | Tool calls all return `{ error: "... not configured" }` | `jira-md-export/.env` missing keys | Populate it; the chatbot reads creds from there directly |
