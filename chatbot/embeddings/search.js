@@ -15,11 +15,44 @@
  * Privacy: QA retrieval is filtered to the calling user's email — Alice's
  * past Q&A never leaks into Bob's prompt as prior_answer context.
  */
-const fs = require('fs');
 const config = require('../config');
-const { getEmbedder, readExistingIndex, getIndexVersion } = require('./indexer');
+const { getEmbedder, getIndexVersion } = require('./indexer');
+const db = require('./db');
 
 const RRF_K = 60;
+
+// ?? Resident vector cache ???????????????????????????????????????????????????
+// The old code read+parsed the entire 5 MB docs.index.json on EVERY query.
+// Instead we decode the chunk vectors from SQLite ONCE into a packed Float32
+// matrix and rebuild it only when the index version changes (same lazy pattern
+// as bm25Cache below). `docs[i].vec` is a zero-copy Float32 view into `mat`, so
+// the per-query allocation that used to spike RSS is gone.
+let vecCache = { version: -1, docs: [] };
+
+function ensureVecCache() {
+  const v = getIndexVersion();
+  if (vecCache.version === v) return vecCache;
+  const rows = db.getAllChunksForSearch();
+  const dim = config.model.embeddingDim;
+  const mat = new Float32Array(rows.length * dim);
+  const docs = new Array(rows.length);
+  let n = 0;
+  for (const r of rows) {
+    const f = db.blobToF32(r.vec);
+    if (!f || f.length !== dim) continue;
+    mat.set(f, n * dim);
+    docs[n] = {
+      id: r.id,
+      text: r.text,
+      vec: mat.subarray(n * dim, (n + 1) * dim),
+      meta: { file: r.file, project: r.project, sprint: r.sprint, section: r.section },
+    };
+    n += 1;
+  }
+  docs.length = n;
+  vecCache = { version: v, docs };
+  return vecCache;
+}
 
 let MiniSearchPromise = null;
 function getMiniSearchCtor() {
@@ -108,27 +141,13 @@ function dot(a, b) {
 }
 
 /**
- * Read the tail of qa-history.jsonl. JSONL = one JSON per line; we read
- * the whole file (it's bounded by qaLog rotation) and keep the last `limit`
- * parseable rows.
+ * Most-recent embeddable QA rows for one user, straight from SQLite (indexed
+ * on by_email + at). Vectors come back as Float32Array, ready for cosine.
+ * Replaces the old read-whole-JSONL-then-filter-in-JS path.
  */
-function readQaHistory(limit) {
-  const p = config.paths.qaHistory;
-  if (!fs.existsSync(p)) return [];
-  let raw;
-  try { raw = fs.readFileSync(p, 'utf8'); } catch (_) { return []; }
-  const lines = raw.split(/\r?\n/).filter(Boolean);
-  const start = Math.max(0, lines.length - limit);
-  const out = [];
-  for (let i = start; i < lines.length; i += 1) {
-    try {
-      const row = JSON.parse(lines[i]);
-      if (row && Array.isArray(row.vec) && row.vec.length === config.model.embeddingDim) {
-        out.push(row);
-      }
-    } catch (_) { /* skip malformed */ }
-  }
-  return out;
+function readQaHistory(limit, userEmail) {
+  if (!userEmail) return [];
+  return db.getQaForUser(userEmail, limit).filter(r => r.vec && r.vec.length === config.model.embeddingDim);
 }
 
 function ageDaysFrom(iso) {
@@ -141,6 +160,25 @@ function ageDaysFrom(iso) {
 
 function normEmail(v) {
   return String(v || '').trim().toLowerCase();
+}
+
+// Skip the cross-encoder rerank when the cosine top-1 dominates clearly:
+//   - top-1 score is meaningfully high (>= RERANK_SKIP_MIN_TOP)
+//   - margin over top-2 is large (>= RERANK_SKIP_MIN_GAP)
+// In that case the rerank rarely changes the order and just costs ~80 ms +
+// risks the cross-encoder reordering an obvious winner. Falls through to the
+// rerank normally when the top is ambiguous (the case where it actually helps).
+const RERANK_SKIP_MIN_TOP = 0.5;
+const RERANK_SKIP_MIN_GAP = 0.15;
+
+function cosineTop1Dominates(scoredPairs) {
+  if (!Array.isArray(scoredPairs) || scoredPairs.length < 2) return false;
+  const s0 = typeof scoredPairs[0] === 'object' && scoredPairs[0] && 'score' in scoredPairs[0]
+    ? scoredPairs[0].score : (Array.isArray(scoredPairs[0]) ? scoredPairs[0][1] : null);
+  const s1 = typeof scoredPairs[1] === 'object' && scoredPairs[1] && 'score' in scoredPairs[1]
+    ? scoredPairs[1].score : (Array.isArray(scoredPairs[1]) ? scoredPairs[1][1] : null);
+  if (typeof s0 !== 'number' || typeof s1 !== 'number') return false;
+  return s0 >= RERANK_SKIP_MIN_TOP && (s0 - s1) >= RERANK_SKIP_MIN_GAP;
 }
 
 function rrfFuse(rankedLists) {
@@ -170,14 +208,13 @@ async function searchTopK(query, opts) {
   const embed = await getEmbedder();
   const qVec = await embed(query);
 
-  const docIdx = readExistingIndex();
-  const docs = (docIdx && Array.isArray(docIdx.chunks)) ? docIdx.chunks : [];
+  const docs = ensureVecCache().docs;
   const qaRaw = (includeQa && userEmail)
-    ? readQaHistory(config.retrieval.qaHistoryReadLimit).filter(r => normEmail(r.by) === userEmail)
+    ? readQaHistory(config.retrieval.qaHistoryReadLimit, userEmail)
     : [];
   const qa = config.retrieval.unhelpfulSkip ? qaRaw.filter(r => r.helpful !== false) : qaRaw;
 
-  // -- Cosine on docs ------------------------------------------------------
+  // ?? Cosine on docs ??????????????????????????????????????????????????????
   const docCosineScored = [];
   for (const c of docs) {
     if (!Array.isArray(c.vec)) continue;
@@ -186,7 +223,7 @@ async function searchTopK(query, opts) {
   docCosineScored.sort((a, b) => b.score - a.score);
   const docCosineTop = docCosineScored.slice(0, poolK);
 
-  // -- BM25 on docs (if minisearch available + hybrid enabled) -------------
+  // ?? BM25 on docs (if minisearch available + hybrid enabled) ?????????????
   let docBm25Top = [];
   if (config.retrieval.enableHybrid) {
     const ms = await getBm25(docs);
@@ -200,7 +237,7 @@ async function searchTopK(query, opts) {
     }
   }
 
-  // -- Fuse via RRF; QA stays cosine-only ----------------------------------
+  // ?? Fuse via RRF; QA stays cosine-only ??????????????????????????????????
   const docByPair = new Map(docCosineTop.map(r => [r.id, r]));
   for (const r of docBm25Top) if (!docByPair.has(r.id)) docByPair.set(r.id, { id: r.id, score: 0, chunk: docs.find(c => c.id === r.id) });
 
@@ -221,7 +258,7 @@ async function searchTopK(query, opts) {
     qaRow: r,
   })).sort((a, b) => b.score - a.score).slice(0, poolK);
 
-  // -- Build a unified candidate list with a normalized ranking score -----
+  // ?? Build a unified candidate list with a normalized ranking score ?????
   const candidates = [];
   docFused.forEach((d, rank) => {
     candidates.push({
@@ -242,15 +279,10 @@ async function searchTopK(query, opts) {
     });
   });
 
-  // -- Optional cross-encoder rerank ---------------------------------------
-  // The Xenova v2.17 `text-classification` pipeline does NOT support
-  // {text, text_pair} batched inputs (it just .split()s on the object).
-  // We sidestep the pipeline and call tokenizer + model directly with
-  // parallel arrays — a single forward pass scores all candidates with
-  // proper [CLS] q [SEP] doc [SEP] tokenization, producing differentiated
-  // logits we can sort on.
+  // ?? Optional cross-encoder rerank ???????????????????????????????????????
+  const skipRerank = cosineTop1Dominates(docCosineTop);
   let finalScored;
-  if (config.retrieval.enableReranker && candidates.length > k) {
+  if (config.retrieval.enableReranker && candidates.length > k && !skipRerank) {
     const reranker = await getReranker();
     if (reranker) {
       try {
@@ -356,12 +388,10 @@ async function searchTopKMulti(queries, opts) {
   const userEmail = normEmail(opts && opts.userEmail);
 
   const embed = await getEmbedder();
-  // Embed all query variants in parallel.
   const qVecs = await Promise.all(queries.map(q => embed(q)));
   const primaryVec = qVecs[0];
 
-  const docIdx = readExistingIndex();
-  const docs = (docIdx && Array.isArray(docIdx.chunks)) ? docIdx.chunks : [];
+  const docs = ensureVecCache().docs;
   const chunkById = new Map(docs.map(c => [c.id, c]));
 
   // Score each doc for each query vector; keep max cosine score across queries.
@@ -411,7 +441,7 @@ async function searchTopKMulti(queries, opts) {
 
   // QA retrieval on primary query only (user-scoped).
   const qaRaw = (includeQa && userEmail)
-    ? readQaHistory(config.retrieval.qaHistoryReadLimit).filter(r => normEmail(r.by) === userEmail)
+    ? readQaHistory(config.retrieval.qaHistoryReadLimit, userEmail)
     : [];
   const qa = config.retrieval.unhelpfulSkip ? qaRaw.filter(r => r.helpful !== false) : qaRaw;
   const qaCosineScored = qa.map(r => ({
@@ -430,9 +460,10 @@ async function searchTopKMulti(queries, opts) {
     candidates.push({ kind: 'qa', rank: candidates.length, preScore: q.score * helpfulMul, qaRow: q.qaRow });
   });
 
-  // Optional cross-encoder rerank (reuse same logic as searchTopK).
+  // Optional cross-encoder rerank.
+  const skipRerank = cosineTop1Dominates(cosineTop);
   let finalScored;
-  if (config.retrieval.enableReranker && candidates.length > k) {
+  if (config.retrieval.enableReranker && candidates.length > k && !skipRerank) {
     const reranker = await getReranker();
     if (reranker) {
       try {

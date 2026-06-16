@@ -17,8 +17,9 @@
  * Streaming uses a small in-module SSE helper (sslHttp) so we keep the same
  * TLS/insecure-TLS pattern used by tools/index.js, with no edits outside this
  * folder. The injected `openRouterFetch` (from server.js) is reused for the
- * small non-streaming follow-up call � preserving its corp-proxy handling.
+ * small non-streaming follow-up call — preserving its corp-proxy handling.
  */
+const fs = require('fs');
 const https = require('https');
 const config = require('./config');
 const { searchTopK, searchTopKMulti, formatContextBlock } = require('./embeddings/search');
@@ -26,71 +27,171 @@ const { logQA, makeQaId } = require('./embeddings/qaLog');
 const { getUserMemories, formatMemoryBlock, extractAndSaveMemories } = require('./embeddings/userMemory');
 const { TOOL_SCHEMAS, dispatchTool } = require('./tools');
 
-const SYSTEM_PROMPT_BASE = `You are the VeloSync Engineering Dashboard's AI assistant. You answer questions about projects, sprints, people, JIRA, GitHub, AI tool adoption (Copilot + Cursor), Confluence, and TestRail QA.
+// ──────────────────────────────────────────────────────────────────────────────
+// JIRA project-key allowlist.
+//
+// extractEntities() scans free text for /^[A-Z]{2,10}-\d+$/. Without an
+// allowlist we get false positives on phrases like "PI-2026 plan",
+// "Q4-2025 retro", "ESO-IDC team", and the orchestrator then fires
+// query_jira_issue on garbage keys, polluting the prompt with
+// <entity_resolved … error="not found"> blocks the model has to reason around.
+//
+// We read jira-md-export/projects.json once on module load (cheap, ~10 keys)
+// and rebuild the allowlist set. If the file is missing or unreadable we fall
+// back to "permissive" mode (treat any well-formed key as valid) so this can
+// never break extraction in environments without projects.json.
+// ──────────────────────────────────────────────────────────────────────────────
+let JIRA_KEY_ALLOWLIST = null; // null = permissive; Set<string> = strict
+try {
+  const raw = fs.readFileSync(config.paths.projectsConfig, 'utf8');
+  const parsed = JSON.parse(raw);
+  const arr = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.projects) ? parsed.projects : []);
+  const set = new Set();
+  for (const p of arr) {
+    const k = (p && (p.key || p.jiraKey) || '').toString().trim().toUpperCase();
+    if (/^[A-Z][A-Z0-9]{1,9}$/.test(k)) set.add(k);
+  }
+  if (set.size) JIRA_KEY_ALLOWLIST = set;
+} catch (_) { /* keep permissive */ }
 
-# CONTEXT CHANNELS YOU MAY RECEIVE
-- <context source="docs"> ............ ground truth from generated sprint MDs (Copilot/Cursor/GitHub/Confluence/TestRail sections per project per sprint).
-- <context source="prior_answer"> ..... hints from past chats. Trust for stable facts; if the question is time-sensitive (>7d old), re-verify with a tool.
-- <entity_resolved type="..."> ........ pre-resolved entities (JIRA issue, GitHub PR, person) the orchestrator already fetched before this turn � TRUST THIS DATA AND DO NOT REFETCH unless the user explicitly asks for fresher data.
-- "Persistent context about this user" . known facts about the person you are talking to � their role, projects, preferences. Use this to personalise answers without asking again.
+// Negative patterns that look like JIRA keys but are not. Used in permissive
+// mode (when projects.json is missing) and as a belt-and-suspenders guard.
+// Note: PR is intentionally NOT here because it is a real JIRA project key
+// (Trauma / PR-Compliance) — the allowlist gates it correctly when active.
+const FAKE_JIRA_KEY_RE = /^(PI|Q[1-4]|H[12]|FY|CY|YR|MVP|RC|GA|EOL|TBD|TODO|FIX|NA|UI|UX|API|SDK|CSS|JS|TS|HTTP|HTTPS|SQL|CSV|PDF|JSON|XML|YAML|HTML|URL|UUID|GUID|ETA|FAQ|KPI|OKR|ROI|SLA|SLO|SOP|MTTR|MTBF|RFC|RFI|RFP)-\d+$/i;
 
-# TOOLS (12)
+function isLikelyRealJiraKey(key) {
+  const k = String(key || '').toUpperCase();
+  if (!/^[A-Z][A-Z0-9]{1,9}-\d{1,7}$/.test(k)) return false;
+  const prefix = k.split('-')[0];
+  if (JIRA_KEY_ALLOWLIST) return JIRA_KEY_ALLOWLIST.has(prefix);
+  return !FAKE_JIRA_KEY_RE.test(k);
+}
+
+const SYSTEM_PROMPT_BASE = `You are the ESO Engineering Dashboard AI. You answer questions about projects, sprints, people, JIRA, GitHub, Copilot/Cursor adoption, Confluence, and TestRail.
+
+# 1. CONTEXT CHANNELS
+- <context source="docs">          → ground-truth sprint MDs. Trust.
+- <context source="prior_answer">   → past chats. Trust stable facts; re-verify if >7d old and time-sensitive.
+- <entity_resolved type="...">      → already-fetched JIRA/PR/person. TRUST AND DO NOT REFETCH unless user asks for fresher data.
+- "Persistent context about this user" → role/projects/prefs. Personalise silently.
+
+# 2. TOOLS (12) — pick the smallest one that answers
 PEOPLE
-  lookup_person(name)                            ? email + accountId + GitHub login. Call FIRST when the user names someone.
-  list_people(filter?)                           ? bulk dump of the resource directory (optionally filtered). Use for "who is on team X" / "list QA managers".
+  lookup_person(name)            → returns { email, accountId, githubLogin, matchScore }. Call FIRST when user names someone. If matchScore < 0.7 or lowConfidence:true, ASK the user to confirm before chaining.
+  list_people(filter?)           → bulk roster. Use for "who is on team X" / "list QA managers".
 WORK
-  query_jira(jql, maxResults?)                   ? live JQL. Use for current tickets, open bugs, project membership, sprint scope.
-  query_jira_issue(key)                          ? ONE ticket with full detail (description, comments, subtasks, links). Use whenever the user names a key like "HDE-1234" or pastes a JIRA URL.
-  query_github(login, days?, richMetrics?)       ? recent PRs + commits in the org. richMetrics=true for full lines-changed payload (slower).
-  query_github_pr(repo, number?)                 ? ONE PR with full detail (files changed, reviews, comments, merge state). Use whenever the user names a PR URL or "repo#123".
+  query_jira(jql, maxResults?)   → JQL search for MULTIPLE tickets / counts.
+  query_jira_issue(key)          → ONE ticket with full detail. Use for any "HDE-1234" / JIRA URL.
+  query_github(login, days?)     → recent PRs+commits for one person.
+  query_github_pr(repo, number?) → ONE PR full detail.
 AI ADOPTION
-  query_copilot(login? | top?)                   ? cached output/copilotdata.json (top-25, last ~28d).
-  query_cursor(email? | top?, sortBy?)           ? cached output/cursordata.json + org model/language/work share.
+  query_copilot(login? | top?)   → cached Copilot leaderboard / per-user.
+  query_cursor(email? | top?)    → cached Cursor leaderboard / per-user + org shares.
 DOCS & QA
-  query_confluence(name, days?)                  ? live per-person Confluence activity.
-  query_testrail(projectIds? | projectName?, days?) ? live TestRail runs/cases/automation. No project ? returns known projects.
+  query_confluence(name, days?)  → per-person Confluence activity.
+  query_testrail(projectIds? | projectName?, days?)
 SPRINTS & PROJECTS
-  query_sprint(project, sprint?)                 ? deterministic full-text fetch of a sprint MD report. Use when the user wants the raw sprint report verbatim.
-  list_projects()                                ? enumerate projects from projects.json (names, keys, managers, TestRail IDs).
+  query_sprint(project, sprint?) → verbatim sprint MD fetch.
+  list_projects()
 
-# ENTITY RECOGNITION (use these patterns to pick the right tool)
-- "HDE-1234", "ESA-87", any /^[A-Z]{2,}-\\d+$/                  ? query_jira_issue(key) � DO NOT use query_jira with key=X.
-- "https://<host>/browse/HDE-1234"                              ? extract the trailing key, then query_jira_issue.
-- "github.com/org/repo/pull/123" or "repo#123"                  ? query_github_pr.
-- "@avnishm" or a bare GitHub login                             ? query_github(login=...). If you need their identity too, also call lookup_person.
-- An email "name@domain"                                        ? lookup_person with the email's local part as name; the row matches on the email field too.
-- A bare first name or "Firstname Lastname"                     ? lookup_person first (cheap, cached). Cascade to query_jira / query_github / query_confluence as needed.
-- "what is X working on" + person                               ? lookup_person ? query_jira(assignee = "<email>" AND statusCategory != Done) AND query_github(login=...).
+# 3. KEY-PASSING — **HARD RULE, DO NOT SKIP**
+For ANY person-scoped tool call (query_github, query_copilot, query_cursor,
+query_confluence, query_jira-by-assignee), your FIRST tool call MUST be
+lookup_person. Then chain with the EXACT field below — never the displayName,
+never a guess.
 
-# DECISION ORDER
-1. If <entity_resolved> already covers the question, answer from it directly without further tool calls.
-2. Else if retrieved <context source="docs"/"prior_answer"> already answers, use it. Don't tool unnecessarily.
-3. For live data (current tickets, today's PRs, "right now"), call tools.
-4. To resolve a person ? always lookup_person first, then chain.
-5. For "show me the full HDE Sprint X report" ? query_sprint, not retrieval.
-  6. Hard cap: 6 tool rounds (orchestrator will terminate the loop).
+  query_github   → login = lookup_person.match.githubLogin   (NOT email, NOT displayName)
+  query_copilot  → login = lookup_person.match.githubLogin
+  query_cursor   → email = lookup_person.match.email          (Cursor uses EMAIL)
+  query_confluence → name = the displayName the user typed   (tool resolves accountId)
+  query_jira(JQL) → email used as: assignee = "<email>"
 
-# FAILURE HANDLING (NON-NEGOTIABLE)
-Every tool can fail. When a tool result is { error, source, hint, retryable, � }:
-  1. STATE THE FAILURE plainly to the user. Don't hide it. Don't pretend the tool worked.
-       e.g. "I couldn't reach JIRA � the API returned 401 (auth)."
-  2. READ THE \`hint\` FIELD � it tells you the right fallback. Follow it.
-  3. ONE RETRY MAX. If retryable=true and the issue was a malformed call, retry once with simpler args. Otherwise don't retry the same tool.
-  4. PROPOSE A FALLBACK in plain language:
-       "Want me to check the latest sprint MD instead?"   ? when JIRA/GitHub down
-       "Want me to try GitHub PRs as a proxy for what they've been working on?" ? when JIRA down
-       "Want me to look at the Copilot/Cursor leaderboards instead?" ? when GitHub down
-       "I have historical TestRail numbers from the last sprint snapshot � want those?" ? when TestRail down
-  5. NEVER INVENT data when a tool failed. No fake JIRA keys, logins, counts, or dates. Better to say "I don't have that right now" than to hallucinate.
-  6. If MULTIPLE tools fail in one turn, summarise what's broken and let the user pick a direction. Don't keep firing.
-  7. If the failure is a config issue (missing env), tell the user the exact env var and where it lives (jira-md-export/.env).
+If lookup_person returns no githubLogin (or any required field), say so plainly
+and stop — don't fall through to the tool with a name/email guess. The tool will
+reject it and you'll waste a round.
 
-# OUTPUT STYLE
-- Concise. No "I'd be happy to help" filler. No restating the question.
-- Markdown OK: **bold**, bullets, links, code spans. Tables only when the user asks.
-- Cite sprint MDs as "<Project> � <Sprint>" inline.
+Example correct chain for "what is Avnish's PR activity":
+  1. lookup_person({name:"Avnish"}) → { match:{ githubLogin:"avnishmalik", email:"..." }, matchScore:0.92 }
+  2. query_github({login:"avnishmalik", days:30})
+
+# 4. DECISION ORDER
+1. If <entity_resolved> answers it → answer directly. NO more tool calls.
+2. Else if retrieved <context> answers it → use it.
+3. For live "right now" / "today" data → call tools.
+4. Person → lookup_person first, then chain with the correct key.
+5. "Full HDE Sprint X report" → query_sprint.
+6. Hard cap: 6 tool rounds; the orchestrator terminates after.
+
+# 5. ANSWER LENGTH POLICY (match shape to question)
+- count / yes-no / single-fact         → 1 sentence. No bullets. No preamble.
+- single-entity lookup (one person/ticket/PR) → 2-4 short lines, key facts only.
+- list / leaderboard / "who is on…"    → 3-6 bullets, one fact per bullet.
+- comparison / diagnosis / why         → 1 short paragraph + ≤4 bullets.
+- explicit "full report" / "everything about" / "deep dive" / "details on" → no cap.
+RULES (always):
+- Never narrate tool calls ("Let me look this up…"). Just answer.
+- Never restate the question. Never start with "Sure", "Absolutely", "I'd be happy to".
 - Numbers: copy verbatim from tool output. Don't round, don't paraphrase.
-- "No data" answers: say "no <X> in the last <window>" plainly. Don't speculate.`;
+- Cite sprint MDs inline as "<Project> — <Sprint>".
+- "No data" → say "no <X> in the last <N>d" plainly. Don't speculate.
+- Markdown OK (**bold**, bullets, links). Tables ONLY if user asks.
+
+# 6. FAILURE HANDLING
+- State the failure plainly. Don't pretend the tool worked.
+- Read the \`hint\` field — follow it. ONE retry max, only if the call was malformed.
+- Never invent data on failure. Better "I don't have that" than a hallucination.
+- Config error (missing env) → name the env var + the file (jira-md-export/.env).
+
+# 7. STYLE EXAMPLES (mirror these)
+
+User: "How many open bugs in HDE right now?"
+You: 14 open bugs in HDE (HS project, statusCategory != Done, type = Bug).
+
+User: "Tell me about HDE-1234"
+You: **HDE-1234** — Login fails on Safari 17 (Bug, In Progress)
+- Assignee: Avnish Malik · Sprint: HDE PI 24.3 Sprint 4
+- Reporter: Jessica O'Connel · Updated 2d ago
+- Linked: blocks HDE-1240. 3 comments.
+
+User: "Top 5 Cursor users by acceptance rate"
+You:
+- alice@eso.com — 71% acceptance, 4.2k lines
+- bob@eso.com — 68% acceptance, 3.9k lines
+- carol@eso.com — 64% acceptance, 5.1k lines
+- dave@eso.com — 61% acceptance, 2.8k lines
+- erin@eso.com — 59% acceptance, 3.3k lines`;
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Answer-shape policy.
+//
+// Maps a question to a max-tokens budget so we never emit 800-word essays for
+// "how many open bugs" type questions. The system prompt's ANSWER LENGTH POLICY
+// teaches the model the *shape*; this is the hard ceiling that catches drift.
+//
+// `verbose` is reserved for explicit asks ("full report", "everything about",
+// "deep dive", "details on"). The list is intentionally narrow — we want
+// brevity to be the default, not the exception.
+// ──────────────────────────────────────────────────────────────────────────────
+const VERBOSE_RE = /\b(full\s+report|everything about|deep\s+dive|in\s+detail|details\s+on|complete\s+report|verbatim|raw\s+report|entire\s+sprint|full\s+sprint)\b/i;
+
+function pickAnswerBudget(question) {
+  const verbose = VERBOSE_RE.test(String(question || ''));
+  return {
+    verbose,
+    maxTokens: verbose ? config.agent.maxTokensVerbose : config.agent.maxTokensDefault,
+  };
+}
+
+// Small-talk / meta detector. When a user says "hi" / "what can you do" we
+// skip tool calling entirely on iter 0 by setting tool_choice='none'. Keeps
+// trivial turns single-round and stops the model from speculatively firing
+// tools just because the schema is in scope.
+const SMALLTALK_RE = /^\s*(hi|hello|hey|hii+|yo|sup|thanks|thank you|thx|ty|ok|okay|cool|nice|good morning|good afternoon|good evening|what can you do|what do you do|who are you|help|how are you|what are you)\b[\s\S]{0,40}\??\s*$/i;
+
+function isSmallTalk(question) {
+  return SMALLTALK_RE.test(String(question || ''));
+}
 
 function buildSystemPrompt(contextBlock, entityBlock, memoryBlock) {
   let out = SYSTEM_PROMPT_BASE;
@@ -106,11 +207,11 @@ function buildSystemPrompt(contextBlock, entityBlock, memoryBlock) {
   return out;
 }
 
-// ------------------------------------------------------------------------------
+// ──────────────────────────────────────────────────────────────────────────────
 // Streaming HTTP helper. Keeps the same TLS pattern as tools/index.js so corp
 // proxies / self-signed certs are handled identically. Returns the merged
 // `{ content, tool_calls, finishReason, status }` after the SSE stream ends.
-// ------------------------------------------------------------------------------
+// ──────────────────────────────────────────────────────────────────────────────
 
 /**
  * Wrap streamChatCompletion with bounded retry + exponential backoff.
@@ -119,10 +220,10 @@ function buildSystemPrompt(contextBlock, entityBlock, memoryBlock) {
  *   - HTTP 5xx responses where the stream never started
  *   - HTTP 429 rate-limit responses where the stream never started
  *
- * Does NOT retry once any content delta has been seen � that would duplicate
+ * Does NOT retry once any content delta has been seen — that would duplicate
  * tokens the widget already rendered. Mid-stream drops bubble up.
  *
- * Emits `llm_retry` events via `onRetry` so the timeline can show "Retrying�"
+ * Emits `llm_retry` events via `onRetry` so the timeline can show "Retrying…"
  * with attempt + reason.
  *
  * @param {object} body
@@ -181,7 +282,7 @@ function streamChatCompletion(body, apiKey, onContentDelta) {
         'Content-Length': Buffer.byteLength(payload),
         Accept: 'text/event-stream',
         'HTTP-Referer': 'https://localhost',
-        'X-Title': 'VeloSync Dashboard Chatbot',
+        'X-Title': 'ESO Dashboard Chatbot',
       },
       ...(allowInsecure && { agent: new https.Agent({ rejectUnauthorized: false }) }),
     };
@@ -272,7 +373,7 @@ function streamChatCompletion(body, apiKey, onContentDelta) {
   });
 }
 
-// ------------------------------------------------------------------------------
+// ──────────────────────────────────────────────────────────────────────────────
 // Entity pre-resolution.
 // We scan the user's question for first-class identifiers (JIRA keys, GitHub
 // PR URLs, GitHub logins, email addresses) and pre-fetch the corresponding
@@ -282,12 +383,12 @@ function streamChatCompletion(body, apiKey, onContentDelta) {
 //   - The model gets ground-truth ticket/PR data on iter 0 instead of having
 //     to plan-tool-respond.
 //   - Less hallucination when a key is paraphrased poorly.
-// ------------------------------------------------------------------------------
+// ──────────────────────────────────────────────────────────────────────────────
 
 // JIRA key inside word boundaries. Bounded length keeps random ALL_CAPS-N
 // tokens from being misread as keys.
 const JIRA_KEY_RE = /\b([A-Z][A-Z0-9]{1,9})-(\d{1,7})\b/g;
-// JIRA URL ? /browse/<KEY>
+// JIRA URL → /browse/<KEY>
 const JIRA_URL_RE = /https?:\/\/[^\s)]+\/browse\/([A-Z][A-Z0-9]{1,9}-\d{1,7})/gi;
 // GitHub PR URL or "owner/repo#N" or "repo#N". Protocol optional so users
 // can paste "github.com/..." without "https://" and still get matched.
@@ -295,7 +396,7 @@ const GITHUB_PR_URL_RE = /(?:https?:\/\/)?github\.com\/([\w.-]+)\/([\w.-]+)\/(?:
 const GITHUB_PR_HASH_RE = /\b(?:([\w.-]+)\/)?([\w.-]+)#(\d{1,6})\b/g;
 // Email
 const EMAIL_RE = /\b[\w.+-]+@[\w-]+\.[\w.-]+\b/g;
-// "@login" � be conservative; GitHub logins are 1..39 chars, alphanumeric + hyphen.
+// "@login" — be conservative; GitHub logins are 1..39 chars, alphanumeric + hyphen.
 const AT_LOGIN_RE = /(?:^|[\s,(])@([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))(?=[\s,.;:!?)]|$)/g;
 
 function uniqStrings(arr) {
@@ -318,15 +419,21 @@ function uniqStrings(arr) {
 function extractEntities(question) {
   const text = String(question || '');
   const jiraKeys = [];
+  // JIRA URLs are explicit — user pasted them, always pre-resolve.
   for (const m of text.matchAll(JIRA_URL_RE)) jiraKeys.push(m[1].toUpperCase());
-  for (const m of text.matchAll(JIRA_KEY_RE)) jiraKeys.push(`${m[1]}-${m[2]}`);
+  // Bare tokens (e.g. "HDE-1234" in a sentence) are gated against the project
+  // allowlist + negative regex so we don't pre-fetch garbage like "PI-2026".
+  for (const m of text.matchAll(JIRA_KEY_RE)) {
+    const candidate = `${m[1]}-${m[2]}`;
+    if (isLikelyRealJiraKey(candidate)) jiraKeys.push(candidate);
+  }
 
   const prRefs = [];
   for (const m of text.matchAll(GITHUB_PR_URL_RE)) {
     prRefs.push({ owner: m[1], repo: m[2], number: parseInt(m[3], 10) });
   }
   for (const m of text.matchAll(GITHUB_PR_HASH_RE)) {
-    // Skip JIRA keys masquerading as repo#N (already captured above) � JIRA
+    // Skip JIRA keys masquerading as repo#N (already captured above) — JIRA
     // keys are ALL_CAPS, GitHub repos typically aren't.
     const repoTok = m[2];
     if (/^[A-Z][A-Z0-9]{1,9}$/.test(repoTok)) continue;
@@ -363,7 +470,7 @@ function escapeXml(s) {
  * Returns an XML-tagged block string ready to splice into the system prompt
  * (or '' if nothing was resolved).
  */
-async function preresolveEntities(question, emit) {
+async function preResolveEntities(question, emit) {
   const ents = extractEntities(question);
   const totalCount = ents.jiraKeys.length + ents.prRefs.length + ents.emails.length + ents.logins.length;
   if (!totalCount) return '';
@@ -400,11 +507,14 @@ async function preresolveEntities(question, emit) {
         blocks.push(`<entity_resolved type="jira_issue" key="${escapeXml(key)}" error="${escapeXml(result.error)}"/>`);
       } else {
         const r = result;
-        const desc = r.description ? `\n${r.description.slice(0, 1500)}${r.descriptionTruncated ? '\n�(truncated)' : ''}` : '';
+        const desc = r.description ? `\n${r.description.slice(0, 1500)}${r.descriptionTruncated ? '\n…(truncated)' : ''}` : '';
         const sprintStr = (r.sprints || []).map(s => `${s.name}${s.state ? ' ['+s.state+']' : ''}`).join(', ');
         const subsStr = (r.subtasks || []).map(s => `${s.key} (${s.status}): ${s.summary}`).slice(0, 8).join('\n  ');
         const linksStr = (r.links || []).map(l => `${l.relation} ${l.key}: ${l.summary}`).slice(0, 8).join('\n  ');
         const commentsStr = (r.recentComments || []).map(c => `[${c.author} @ ${c.created}] ${c.body}`).slice(0, 3).join('\n  ');
+        const spLine = (r.storyPoints != null || r.actualStoryPoints != null)
+          ? `storyPoints: ${r.storyPoints != null ? r.storyPoints : '-'}${r.actualStoryPoints != null ? `  actualStoryPoints: ${r.actualStoryPoints}` : ''}\n`
+          : '';
         blocks.push(
           `<entity_resolved type="jira_issue" key="${escapeXml(r.key)}" url="${escapeXml(r.url)}">\n` +
           `summary: ${r.summary}\n` +
@@ -412,10 +522,11 @@ async function preresolveEntities(question, emit) {
           `assignee: ${r.assignee || '-'} (${r.assigneeEmail || ''})\n` +
           `reporter: ${r.reporter || '-'}\n` +
           (sprintStr ? `sprint: ${sprintStr}\n` : '') +
+          spLine +
           (r.fixVersions?.length ? `fixVersions: ${r.fixVersions.join(', ')}\n` : '') +
           (r.components?.length ? `components: ${r.components.join(', ')}\n` : '') +
           (r.labels?.length ? `labels: ${r.labels.join(', ')}\n` : '') +
-          (r.parent ? `parent: ${r.parent.key} � ${r.parent.summary}\n` : '') +
+          (r.parent ? `parent: ${r.parent.key} — ${r.parent.summary}\n` : '') +
           (subsStr ? `subtasks:\n  ${subsStr}\n` : '') +
           (linksStr ? `links:\n  ${linksStr}\n` : '') +
           `created: ${r.created}  updated: ${r.updated}\n` +
@@ -445,7 +556,7 @@ async function preresolveEntities(question, emit) {
           `title: ${r.title}\n` +
           `state: ${r.state}${r.draft ? ' (draft)' : ''}${r.merged ? ' (merged)' : ''}\n` +
           `author: ${r.author}\n` +
-          `branches: ${r.headBranch} ? ${r.baseBranch}\n` +
+          `branches: ${r.headBranch} → ${r.baseBranch}\n` +
           `changes: +${r.additions}/-${r.deletions} across ${r.changedFiles} files\n` +
           (r.requestedReviewers?.length ? `requested reviewers: ${r.requestedReviewers.join(', ')}\n` : '') +
           (r.labels?.length ? `labels: ${r.labels.join(', ')}\n` : '') +
@@ -464,7 +575,7 @@ async function preresolveEntities(question, emit) {
 
   // For emails + logins, we just resolve identity (lookup_person handles both
   // names and emails because the resource directory rows include emails). We
-  // do NOT auto-cascade to query_jira/query_github here � the model can decide
+  // do NOT auto-cascade to query_jira/query_github here — the model can decide
   // whether to chain based on the question.
   for (const email of ents.emails) {
     tasks.push(fire('lookup_person', { name: email }, email).then(({ result }) => {
@@ -497,15 +608,15 @@ async function preresolveEntities(question, emit) {
   return `\n\n--- Pre-resolved entities (${blocks.length}) ---\n${blocks.join('\n\n')}\n--- End pre-resolved entities ---`;
 }
 
-// ------------------------------------------------------------------------------
-// Upgrade 2 � Query Rewriting + HyDE.
+// ──────────────────────────────────────────────────────────────────────────────
+// Upgrade 2 — Query Rewriting + HyDE.
 //
 // Before retrieval, ask the fast model to produce 2 alternative phrasings of
 // the user's question AND a "hypothetical answer document" (HyDE). All 3+1
 // (original + 2 variants + HyDE) are embedded and their cosine scores fused
 // via max-score in searchTopKMulti. This dramatically improves recall for
 // short/ambiguous/non-English queries.
-// ------------------------------------------------------------------------------
+// ──────────────────────────────────────────────────────────────────────────────
 
 /**
  * Expand a user query into multiple variants + a HyDE document.
@@ -515,8 +626,33 @@ async function preresolveEntities(question, emit) {
  * @param {{ question: string, openRouterFetch: Function, apiKey: string }} opts
  * @returns {Promise<string[]>}
  */
+// Queries where HyDE / variant rewriting adds zero value and only burns
+// ~1-2s of fast-LLM time before retrieval can start. We skip the rewrite
+// when:
+//   - smalltalk ("hi", "thanks") — no retrieval target at all
+//   - very short prompts — too little signal for the rewriter to work with
+//   - entity-bearing prompts (JIRA key / email / GitHub PR URL) — entity
+//     pre-resolution already grounds them, the variant phrasings just add
+//     noise to the cosine pool.
+function shouldSkipExpand(question) {
+  const q = String(question || '').trim();
+  if (!q || q.length < 24) return true;
+  if (isSmallTalk(q)) return true;
+  // JIRA_KEY_RE / EMAIL_RE / GITHUB_PR_URL_RE all have the `g` flag, so
+  // .test() advances lastIndex. Reset before AND after each test so the
+  // shared regexes stay in a consistent state for any other caller.
+  JIRA_KEY_RE.lastIndex = 0;
+  if (JIRA_KEY_RE.test(q)) { JIRA_KEY_RE.lastIndex = 0; return true; }
+  EMAIL_RE.lastIndex = 0;
+  if (EMAIL_RE.test(q)) { EMAIL_RE.lastIndex = 0; return true; }
+  GITHUB_PR_URL_RE.lastIndex = 0;
+  if (GITHUB_PR_URL_RE.test(q)) { GITHUB_PR_URL_RE.lastIndex = 0; return true; }
+  return false;
+}
+
 async function expandQuery({ question, openRouterFetch, apiKey }) {
   if (!config.features.queryRewrite) return [question];
+  if (shouldSkipExpand(question)) return [question];
   const model = config.model.fastModel;
   const messages = [
     {
@@ -524,7 +660,7 @@ async function expandQuery({ question, openRouterFetch, apiKey }) {
       content:
         'You improve search retrieval for an engineering sprint-tracking dashboard. ' +
         'Given a user question, return a JSON object with two keys:\n' +
-        '"variants": array of exactly 2 short alternative phrasings (=120 chars each) that would match different relevant sprint/JIRA/GitHub documents.\n' +
+        '"variants": array of exactly 2 short alternative phrasings (≤120 chars each) that would match different relevant sprint/JIRA/GitHub documents.\n' +
         '"hypothetical": a 2-3 sentence snippet that looks like a section from a sprint report that would perfectly answer this question.\n' +
         'Return ONLY the JSON object, no prose, no markdown fences.',
     },
@@ -554,13 +690,13 @@ async function expandQuery({ question, openRouterFetch, apiKey }) {
   }
 }
 
-// ------------------------------------------------------------------------------
-// Upgrade 3a � Intent-based Tool Router.
+// ──────────────────────────────────────────────────────────────────────────────
+// Upgrade 3a — Intent-based Tool Router.
 //
 // Light keyword routing narrows the tools list exposed to the LLM based on
 // the question's likely domain. This reduces token overhead, cuts hallucinated
 // tool calls, and is entirely rule-based (zero LLM call).
-// ------------------------------------------------------------------------------
+// ──────────────────────────────────────────────────────────────────────────────
 
 const TOOL_INTENT_GROUPS = {
   people:    ['lookup_person', 'list_people'],
@@ -622,13 +758,13 @@ function routeTools(question, allSchemas) {
   return filtered.length >= 2 ? filtered : allSchemas;
 }
 
-// ------------------------------------------------------------------------------
-// Upgrade 5 � Conversation History Compression.
+// ──────────────────────────────────────────────────────────────────────────────
+// Upgrade 5 — Conversation History Compression.
 //
 // When history exceeds `historyCompressTurns` turns, older turns are
 // summarised into a single "Earlier conversation" message. The last 4 turns
 // are always kept verbatim so the model has immediate context.
-// ------------------------------------------------------------------------------
+// ──────────────────────────────────────────────────────────────────────────────
 
 /**
  * Compress long conversation histories into a summary + recent verbatim tail.
@@ -678,10 +814,10 @@ async function compressHistory({ history, openRouterFetch, apiKey }) {
   }
 }
 
-// ------------------------------------------------------------------------------
+// ──────────────────────────────────────────────────────────────────────────────
 // Follow-up generator. Cheap separate completion. Uses the injected (non-
 // streaming) openRouterFetch so corp-proxy handling stays identical.
-// ------------------------------------------------------------------------------
+// ──────────────────────────────────────────────────────────────────────────────
 
 async function generateFollowups({ question, answer, model, openRouterFetch, apiKey }) {
   const followupModel = config.agent.followupModel || model;
@@ -736,7 +872,7 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
   const chosenModel = model || config.model.chatDefault;
   const emit = typeof onEvent === 'function' ? onEvent : () => {};
 
-  // -- 0. History compression (Upgrade 5) ----------------------------------
+  // ── 0. History compression (Upgrade 5) ──────────────────────────────────
   // Summarise old turns into a compact block so we don't blow the context
   // window on long chats, while keeping the last 4 turns verbatim.
   let effectiveHistory = history || [];
@@ -749,7 +885,7 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
     }
   }
 
-  // -- 0b. User memory retrieval (Upgrade 4) -------------------------------
+  // ── 0b. User memory retrieval (Upgrade 4) ───────────────────────────────
   // Load persistent facts about this user so the model can personalise
   // answers without needing to be re-introduced every session.
   let memoryBlock = '';
@@ -762,7 +898,7 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
     }
   }
 
-  // -- 1. Pre-retrieval (Upgrade 2: Query Rewriting + HyDE) -----------------
+  // ── 1. Pre-retrieval (Upgrade 2: Query Rewriting + HyDE) ─────────────────
   emit({ type: 'retrieval_start' });
   let hits = [];
   try {
@@ -787,7 +923,7 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
 
   // Surface lightweight citation metadata so the widget can render source
   // chips under the answer. We deliberately do NOT include chunk text here
-  // (already used in the system prompt) � this is just enough for the user
+  // (already used in the system prompt) — this is just enough for the user
   // to know "this answer was grounded on these sprint reports".
   if (hits.length) {
     const sources = hits.map((h, i) => {
@@ -815,14 +951,14 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
     emit({ type: 'sources', items: sources });
   }
 
-  // -- 1b. Entity pre-resolution --------------------------------------------
+  // ── 1b. Entity pre-resolution ────────────────────────────────────────────
   // Detect first-class identifiers (JIRA keys, GitHub PR URLs, emails,
   // @logins) in the user's question and pre-fetch them so the LLM has
   // ground-truth payloads on iteration 0 instead of having to plan tool
   // calls. Cheap, parallel, gracefully no-ops if no entities are found.
   let entityBlock = '';
   try {
-    entityBlock = await preresolveEntities(question, emit);
+    entityBlock = await preResolveEntities(question, emit);
   } catch (err) {
     console.warn('[chatbot agent] entity pre-resolve failed:', err.message || err);
   }
@@ -830,7 +966,7 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
   const contextBlock = formatContextBlock(hits);
   const messages = [{ role: 'system', content: buildSystemPrompt(contextBlock, entityBlock, memoryBlock) }];
   // effectiveHistory is either compressed (Upgrade 5) or the raw slice from the
-  // widget � either way it's already bounded, so no secondary .slice(-6) needed.
+  // widget — either way it's already bounded, so no secondary .slice(-6) needed.
   if (Array.isArray(effectiveHistory) && effectiveHistory.length) {
     for (const m of effectiveHistory) {
       if (m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string') {
@@ -840,7 +976,7 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
   }
   messages.push({ role: 'user', content: question });
 
-  // -- 2. Tool-calling loop with streaming ----------------------------------
+  // ── 2. Tool-calling loop with streaming ──────────────────────────────────
   // Upgrade 3a: route tools based on question intent. On iter 0 expose a
   // narrowed subset; subsequent iters always get the full set in case the
   // model needs to pivot (e.g. a person lookup leads to a JIRA query).
@@ -850,14 +986,25 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
   let llmError = false;
   let qaId = null;
 
+  // Per-question completion budget. `verbose=true` only when the user
+  // explicitly asks for a full / detailed answer; otherwise the default
+  // ceiling enforces brevity even when the model would otherwise ramble.
+  const budget = pickAnswerBudget(question);
+  // Trivial small-talk turns ("hi", "thanks", "what can you do") never need
+  // tools. Forcing tool_choice='none' on iter 0 stops accidental tool firing
+  // and lets us complete in a single round.
+  const smallTalk = isSmallTalk(question);
+
   for (let iter = 0; iter < config.agent.maxIters; iter += 1) {
     const activeTools = iter === 0 ? routedTools : TOOL_SCHEMAS;
+    const toolChoice = (iter === 0 && smallTalk) ? 'none' : 'auto';
     const body = {
       model: chosenModel,
       messages,
       tools: activeTools,
-      tool_choice: 'auto',
+      tool_choice: toolChoice,
       temperature: config.agent.temperature,
+      max_tokens: budget.maxTokens,
     };
 
     emit({ type: 'llm_call_start', iter, model: chosenModel });
@@ -873,7 +1020,7 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
       );
     } catch (err) {
       emit({ type: 'llm_call_end', iter, status: 0, error: err.message || String(err) });
-      finalAnswer = `I couldn't reach the LLM provider (OpenRouter): ${err.message || err}. This is usually a network/proxy/TLS issue. Please retry, or pick a different model from the dropdown � sometimes one upstream is down while others are fine.`;
+      finalAnswer = `I couldn't reach the LLM provider (OpenRouter): ${err.message || err}. This is usually a network/proxy/TLS issue. Please retry, or pick a different model from the dropdown — sometimes one upstream is down while others are fine.`;
       llmError = true;
       emit({ type: 'final', content: finalAnswer, llmError: true });
       break;
@@ -885,8 +1032,8 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
       const msgStr = typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg);
       finalAnswer = `The LLM provider returned an error (${result.status}): ${msgStr}. ${
         result.status === 401 || result.status === 403 ? 'Check OPENROUTER_API_KEY in jira-md-export/.env.' :
-        result.status === 429 ? 'Rate-limited � retry in a minute or pick a different model.' :
-        result.status >= 500 ? 'Upstream is having issues � try a different model from the dropdown.' :
+        result.status === 429 ? 'Rate-limited — retry in a minute or pick a different model.' :
+        result.status >= 500 ? 'Upstream is having issues — try a different model from the dropdown.' :
         'Try again or pick a different model.'
       }`;
       llmError = true;
@@ -897,10 +1044,19 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
     const toolCalls = Array.isArray(result.tool_calls) ? result.tool_calls.filter(tc => tc?.function?.name) : [];
 
     if (toolCalls.length === 0) {
+      // Surface OpenRouter's `finish_reason: length` to the user. Without this
+      // the widget happily renders a half-sentence and the user has no idea
+      // the model hit max_tokens. We also append a one-line breadcrumb so the
+      // user knows how to ask for more.
+      const wasTruncated = result.finishReason === 'length';
       finalAnswer = (result.content || '').trim();
+      if (wasTruncated) {
+        finalAnswer += '\n\n_(Answer was cut off at the token limit — re-ask with "full report" or "in detail" for the long version.)_';
+      }
       messages.push({ role: 'assistant', content: finalAnswer });
-      // qaId is filled in once logQA resolves below.
-      emit({ type: 'final', content: finalAnswer });
+      emit(wasTruncated
+        ? { type: 'final', content: finalAnswer, truncated: true, reason: 'length' }
+        : { type: 'final', content: finalAnswer });
       break;
     }
 
@@ -929,11 +1085,16 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
     }));
 
     for (const { name, args, result: toolResult, id } of toolResults) {
+      // Widget timeline + downstream consumers always see the FULL result.
       allToolCalls.push({ name, args, result: toolResult });
+      // The LLM, however, only needs the model-relevant fields. Trimming
+      // here cuts context bloat 30-60% on leaderboard / sprint / single-
+      // ticket payloads, which both speeds up the next round and keeps the
+      // model from paraphrasing fields it shouldn't have seen anyway.
       messages.push({
         role: 'tool',
         tool_call_id: id,
-        content: JSON.stringify(toolResult),
+        content: JSON.stringify(summariseForLLM(name, toolResult)),
       });
     }
   }
@@ -943,8 +1104,8 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
     emit({ type: 'final', content: finalAnswer, truncated: true });
   }
 
-  // -- 3. Q+A log + follow-up generation, both fired in parallel ------------
-  // Skip the QA log entirely on LLM-error fallbacks � those aren't real
+  // ── 3. Q+A log + follow-up generation, both fired in parallel ────────────
+  // Skip the QA log entirely on LLM-error fallbacks — those aren't real
   // answers and we don't want them surfaced as `prior_answer` next time.
   //
   // qaId is generated SYNCHRONOUSLY here and emitted to the widget right
@@ -994,7 +1155,7 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
       if (Array.isArray(suggestions) && suggestions.length) {
         emit({ type: 'followups', items: suggestions });
       }
-    } catch (_) { /* ignore � never block the response on this */ }
+    } catch (_) { /* ignore — never block the response on this */ }
   }
 
   return {
@@ -1003,6 +1164,251 @@ async function ask({ question, model, history, user, onEvent, openRouterFetch })
     model: chosenModel,
     qaId: qaId || null,
   };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Tool result summariser for the LLM context.
+//
+// Raw tool results carry rich metadata for the widget timeline (full file
+// lists, every comment, the entire leaderboard, etc.) but the LLM rarely
+// needs all of it to compose an answer. Re-feeding the whole blob bloats
+// context, slows the next round, and tempts the model to paraphrase fields
+// it shouldn't surface.
+//
+// This function produces a model-only view that keeps the answer-relevant
+// fields and drops or caps the rest. The widget-side `allToolCalls` array
+// still gets the original payload, so source chips / inspector views are
+// unaffected.
+//
+// Errors / hints / cache markers are passed through untouched — those drive
+// the model's failure-handling logic.
+// ──────────────────────────────────────────────────────────────────────────────
+function summariseForLLM(name, r) {
+  if (!r || typeof r !== 'object') return r;
+  // Always preserve the error-recovery contract.
+  if (r.error) {
+    return {
+      error: r.error,
+      source: r.source,
+      retryable: r.retryable,
+      hint: r.hint,
+      ...(r.detail ? { detail: String(r.detail).slice(0, 300) } : {}),
+      ...(r.knownProjects ? { knownProjects: r.knownProjects.slice(0, 12) } : {}),
+    };
+  }
+
+  switch (name) {
+    case 'lookup_person': {
+      const out = {
+        match: r.match,
+        matchScore: r.matchScore,
+      };
+      if (r.lowConfidence) { out.lowConfidence = true; out.hint = r.hint; }
+      if (Array.isArray(r.candidates) && r.candidates.length) out.candidates = r.candidates.slice(0, 3);
+      return out;
+    }
+
+    case 'list_people': {
+      const total = r.count;
+      const slice = (r.people || []).slice(0, 25).map(p => ({
+        displayName: p.displayName, email: p.email, role: p.role, team: p.team, githubLogin: p.githubLogin,
+      }));
+      const returnedToYou = slice.length;
+      const out = {
+        total,
+        returnedToYou,
+        people: slice,
+      };
+      if (total > returnedToYou) {
+        out.narrowingHint =
+          `Showing ${returnedToYou} of ${total} people. ` +
+          `If the user wants someone specific not in this slice, ask them for a clue or call list_people again with {filter:"<role/team/email-substring>"} to narrow.`;
+      }
+      return out;
+    }
+
+    case 'query_jira': {
+      return {
+        total: r.total,
+        returned: r.returned,
+        jql: r.jql,
+        issues: (r.issues || []).slice(0, 20).map(i => ({
+          key: i.key,
+          summary: i.summary,
+          status: i.status,
+          type: i.type,
+          assignee: i.assignee,
+          updated: i.updated,
+          ...(i.resolved ? { resolved: i.resolved } : {}),
+          // SP must round-trip — shapeJiraIssue already populated it.
+          ...(i.storyPoints != null ? { storyPoints: i.storyPoints } : {}),
+          ...(i.actualStoryPoints != null ? { actualStoryPoints: i.actualStoryPoints } : {}),
+        })),
+      };
+    }
+
+    case 'query_jira_issue': {
+      return {
+        key: r.key,
+        url: r.url,
+        summary: r.summary,
+        type: r.type,
+        status: r.status,
+        priority: r.priority,
+        assignee: r.assignee,
+        assigneeEmail: r.assigneeEmail,
+        reporter: r.reporter,
+        sprints: r.sprints,
+        // SP must round-trip to the LLM — without these, the model says
+        // "no story points" even when the tool fetched a real value.
+        storyPoints: r.storyPoints,
+        ...(r.actualStoryPoints != null ? { actualStoryPoints: r.actualStoryPoints } : {}),
+        labels: (r.labels || []).slice(0, 6),
+        components: (r.components || []).slice(0, 4),
+        fixVersions: (r.fixVersions || []).slice(0, 3),
+        parent: r.parent,
+        subtasks: (r.subtasks || []).slice(0, 6),
+        links: (r.links || []).slice(0, 6),
+        created: r.created,
+        updated: r.updated,
+        resolved: r.resolved,
+        description: typeof r.description === 'string' ? r.description.slice(0, 800) : r.description,
+        descriptionTruncated: r.descriptionTruncated || (typeof r.description === 'string' && r.description.length > 800),
+        commentCount: r.commentCount,
+        recentComments: (r.recentComments || []).slice(-2).map(c => ({
+          author: c.author,
+          created: c.created,
+          body: typeof c.body === 'string' ? c.body.slice(0, 200) : c.body,
+        })),
+      };
+    }
+
+    case 'query_github': {
+      if (r.metrics) return { login: r.login, org: r.org, windowDays: r.windowDays, since: r.since, metrics: r.metrics };
+      return {
+        login: r.login,
+        org: r.org,
+        windowDays: r.windowDays,
+        prCount: r.prCount,
+        commitCount: r.commitCount,
+        prs: (r.prs || []).slice(0, 10),
+        commits: (r.commits || []).slice(0, 8).map(c => ({ message: c.message, repo: c.repo, committedAt: c.committedAt })),
+      };
+    }
+
+    case 'query_github_pr': {
+      const out = {
+        owner: r.owner, repo: r.repo, number: r.number, url: r.url,
+        title: r.title, state: r.state, draft: r.draft, merged: r.merged, mergedAt: r.mergedAt,
+        author: r.author, baseBranch: r.baseBranch, headBranch: r.headBranch,
+        additions: r.additions, deletions: r.deletions, changedFiles: r.changedFiles,
+        labels: r.labels, createdAt: r.createdAt, updatedAt: r.updatedAt,
+        filesPreview: (r.filesPreview || []).slice(0, 8),
+        reviews: (r.reviews || []).slice(0, 4).map(rv => ({ login: rv.login, state: rv.state, submittedAt: rv.submittedAt })),
+        comments: (r.comments || []).slice(-3).map(c => ({ login: c.login, body: typeof c.body === 'string' ? c.body.slice(0, 200) : c.body })),
+        body: typeof r.body === 'string' ? r.body.slice(0, 800) : r.body,
+      };
+      if (r.requestedReviewers && r.requestedReviewers.length) out.requestedReviewers = r.requestedReviewers;
+      return out;
+    }
+
+    case 'query_copilot': {
+      if (r.found === false) return { login: r.login, found: false, note: r.note, period: r.period };
+      if (r.found === true) {
+        const s = r.stats || {};
+        return {
+          login: r.login, found: true, period: r.period,
+          stats: {
+            user_login: s.user_login, lines_accepted: s.lines_accepted,
+            lines_suggested: s.lines_suggested, acceptance_rate: s.acceptance_rate,
+            chats: s.chats, active_days: s.active_days,
+          },
+        };
+      }
+      return {
+        period: r.period,
+        enterpriseSummary: r.enterpriseSummary,
+        leaderboardSize: r.leaderboardSize,
+        topUsers: (r.topUsers || []).slice(0, 10).map(u => ({
+          user_login: u.user_login,
+          lines_accepted: u.lines_accepted,
+          acceptance_rate: u.acceptance_rate,
+          active_days: u.active_days,
+        })),
+      };
+    }
+
+    case 'query_cursor': {
+      if (r.found === false) return { email: r.email, found: false, note: r.note, period: r.period };
+      if (r.found === true) {
+        const s = r.stats || {};
+        return {
+          email: r.email, found: true, period: r.period,
+          stats: {
+            email: s.email, lines_added: s.lines_added,
+            acceptance_rate: s.acceptance_rate, agent_requests: s.agent_requests,
+            tab_completions: s.tab_completions, active_days: s.active_days,
+          },
+        };
+      }
+      return {
+        period: r.period,
+        sortedBy: r.sortedBy,
+        topUsers: (r.topUsers || []).slice(0, 10).map(u => ({
+          email: u.email, lines_added: u.lines_added,
+          acceptance_rate: u.acceptance_rate, agent_requests: u.agent_requests,
+        })),
+        modelShare: r.modelShare,
+        languageShare: r.languageShare,
+        workShare: r.workShare,
+      };
+    }
+
+    case 'query_confluence': {
+      return {
+        person: r.person,
+        windowDays: r.windowDays,
+        since: r.since,
+        until: r.until,
+        activity: r.activity,
+      };
+    }
+
+    case 'query_testrail': {
+      if (Array.isArray(r.knownProjects)) return { knownProjects: r.knownProjects.slice(0, 12) };
+      return {
+        projectIds: r.projectIds,
+        windowDays: r.windowDays,
+        since: r.since,
+        until: r.until,
+        metrics: r.metrics,
+      };
+    }
+
+    case 'query_sprint': {
+      // Discovery shape: just the sprint list.
+      if (Array.isArray(r.sprints)) return { sprints: r.sprints.slice(0, 30), hint: r.hint };
+      // Ambiguous: matched multiple, ask the model to disambiguate.
+      if (Array.isArray(r.matched)) return { project: r.project, matched: r.matched.slice(0, 10), hint: r.hint };
+      // Full hit. Cap content harder than the tool's 12 KB cap unless the
+      // user explicitly asked for verbatim/full output (handled prompt-side).
+      const SOFT_CAP = 6000;
+      const content = typeof r.content === 'string' ? r.content : '';
+      const trimmed = content.length > SOFT_CAP ? content.slice(0, SOFT_CAP) + '\n\n[trimmed for context — call again with explicit sprint name for full text]' : content;
+      return {
+        project: r.project, sprint: r.sprint, manager: r.manager, file: r.file,
+        truncated: r.truncated || content.length > SOFT_CAP,
+        content: trimmed,
+      };
+    }
+
+    case 'list_projects': {
+      return { count: r.count, projects: (r.projects || []).slice(0, 50) };
+    }
+
+    default:
+      return r;
+  }
 }
 
 function summariseToolResult(name, r) {
@@ -1020,7 +1426,7 @@ function summariseToolResult(name, r) {
     return `${r.returned ?? 0}/${r.total ?? 0} issues` + cached;
   }
   if (name === 'query_jira_issue') {
-    return `${r.key} ${r.status || ''} � ${(r.summary || '').slice(0, 80)}` + cached;
+    return `${r.key} ${r.status || ''} — ${(r.summary || '').slice(0, 80)}` + cached;
   }
   if (name === 'query_github') {
     if (r.metrics) return 'rich metrics' + cached;
@@ -1044,13 +1450,13 @@ function summariseToolResult(name, r) {
     return `${r.activity?.contributed ?? 0} pages (${r.activity?.created ?? 0} created) in ${r.windowDays ?? '?'}d` + cached;
   }
   if (name === 'query_testrail') {
-    if (Array.isArray(r.knownProjects)) return `no project given � ${r.knownProjects.length} known` + cached;
+    if (Array.isArray(r.knownProjects)) return `no project given — ${r.knownProjects.length} known` + cached;
     return `${r.metrics?.runsCreated ?? 0} runs, ${r.metrics?.casesCreated ?? 0} cases in ${r.windowDays ?? '?'}d` + cached;
   }
   if (name === 'query_sprint') {
     if (Array.isArray(r.sprints)) return `${r.sprints.length} sprints listed` + cached;
-    if (Array.isArray(r.matched)) return `${r.matched.length} match(es) � ambiguous` + cached;
-    return `${r.project} � ${r.sprint}${r.truncated ? ' (truncated)' : ''}` + cached;
+    if (Array.isArray(r.matched)) return `${r.matched.length} match(es) — ambiguous` + cached;
+    return `${r.project} — ${r.sprint}${r.truncated ? ' (truncated)' : ''}` + cached;
   }
   if (name === 'list_projects') {
     return `${r.count ?? 0} projects` + cached;

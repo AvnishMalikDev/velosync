@@ -6,7 +6,7 @@
  *   chatbot.register(app, { requireAuth, requireAdmin, isAdmin, openRouterFetch });
  *
  * That's the only inbound edge into this module. We add:
- *   - GET   /chatbot/ui/*           (static widget assets, admin-only â€” non-admins
+ *   - GET   /chatbot/ui/*           (static widget assets, admin-only — non-admins
  *                                    receive a silent 200 empty stub instead of a
  *                                    403, so the <script> tag on dashboard pages
  *                                    doesn't pollute their console)
@@ -27,10 +27,11 @@ const config = require('./config');
 const agent = require('./agent');
 const {
   ensureDocsIndex,
-  readExistingIndex,
+  getIndexMeta,
   getEmbedderStatus,
   getIndexVersion,
 } = require('./embeddings/indexer');
+const db = require('./embeddings/db');
 const fileWatcher = require('./embeddings/watcher');
 const vecHealer = require('./embeddings/vecHealer');
 const qaLog = require('./embeddings/qaLog');
@@ -45,30 +46,21 @@ function ensureDataDir() {
 
 function backgroundWarmup() {
   ensureDataDir();
-  // Don't await â€” let the server start serving requests immediately.
   ensureDocsIndex(({ stage, done, total }) => {
     if (stage === 'embedding' && total > 0 && (done % 25 === 0 || done === total)) {
       console.log(`[chatbot] embedding ${done}/${total}`);
     }
   })
     .then((idx) => {
-      console.log(`[chatbot] index ready: ${idx.chunks.length} chunks from ${idx.mdFileCount || 0} MD files`);
-      // Hot-reload: start watcher only after the initial build so we don't
-      // race with the cold-start full build.
+      console.log(`[chatbot] index ready: ${idx.chunkCount} chunks from ${idx.mdFileCount || 0} MD files`);
       fileWatcher.start();
-      // Heal any qa-history rows that were logged while the embedder was
-      // offline (they have vec=null). Cheap; runs every minute thereafter.
       vecHealer.start();
-      // Pre-warm the cross-encoder so the first reranked query doesn't
-      // pay the ~3-5s ONNX session creation cost. Background, non-blocking.
       prewarmReranker().then((r) => {
         if (r) console.log('[chatbot] reranker pre-warmed');
       });
     })
     .catch((err) => {
       console.error('[chatbot] warmup failed:', err.message || err);
-      // Even if the cold-start indexing failed (model files missing), still
-      // start the healer + watcher so subsequent recovery is automatic.
       vecHealer.start();
       fileWatcher.start();
     });
@@ -82,40 +74,28 @@ function buildHealthzPayload() {
   const rateLimits = getRateLimitStats();
   const toolCache = getToolCacheStats();
 
+  const dbBytes = (() => {
+    try { return db.getDbBytes(); } catch (_) { return 0; }
+  })();
+
   let docsIndex = null;
   try {
-    const idx = readExistingIndex();
-    if (idx) {
-      docsIndex = {
-        version: idx.indexVersion || 0,
-        schemaVersion: idx.schemaVersion || 1,
-        chunks: Array.isArray(idx.chunks) ? idx.chunks.length : 0,
-        files: idx.mdFileCount || 0,
-        builtAt: idx.builtAt || null,
-        embeddingModel: idx.embeddingModel || null,
-        embeddingDim: idx.embeddingDim || null,
-        bytes: (() => { try { return fs.statSync(config.paths.docsIndex).size; } catch (_) { return 0; } })(),
-      };
-    }
+    const idx = getIndexMeta();
+    docsIndex = {
+      version: idx.indexVersion || 0,
+      schemaVersion: idx.schemaVersion || 0,
+      chunks: idx.chunks || 0,
+      files: idx.mdFileCount || 0,
+      builtAt: idx.builtAt || null,
+      embeddingModel: idx.embeddingModel || null,
+      embeddingDim: idx.embeddingDim || null,
+      bytes: dbBytes,
+    };
   } catch (_) { /* ignore */ }
 
-  let qa = { rows: 0, withVec: 0, withoutVec: 0, helpfulUp: 0, helpfulDown: 0, edited: 0, bytes: 0 };
+  let qa = { rows: 0, withVec: 0, withoutVec: 0, helpfulUp: 0, helpfulDown: 0, edited: 0, bytes: dbBytes };
   try {
-    if (fs.existsSync(config.paths.qaHistory)) {
-      qa.bytes = fs.statSync(config.paths.qaHistory).size;
-      const raw = fs.readFileSync(config.paths.qaHistory, 'utf8');
-      for (const line of raw.split(/\r?\n/)) {
-        if (!line) continue;
-        try {
-          const r = JSON.parse(line);
-          qa.rows += 1;
-          if (Array.isArray(r.vec)) qa.withVec += 1; else qa.withoutVec += 1;
-          if (r.helpful === true) qa.helpfulUp += 1;
-          if (r.helpful === false) qa.helpfulDown += 1;
-          if (r.editedAt) qa.edited += 1;
-        } catch (_) { /* skip */ }
-      }
-    }
+    qa = { ...db.getQaStats(), bytes: dbBytes };
   } catch (_) { /* ignore */ }
 
   return {
@@ -144,10 +124,6 @@ function buildHealthzPayload() {
   };
 }
 
-/**
- * Build the POST /api/chatbot/ask handler. Streams NDJSON events to the client
- * and writes the final answer + Q+A log on completion.
- */
 function makeAskHandler({ openRouterFetch }) {
   return async (req, res) => {
     const { question, model, history } = req.body || {};
@@ -194,39 +170,18 @@ function makeAskHandler({ openRouterFetch }) {
   };
 }
 
-/**
- * Silent admin gate for the static widget assets. If the user is authenticated
- * but not an admin we serve a tiny empty stub for known asset types instead of
- * a 403, so the <script src="/chatbot/ui/widget.js"> on dashboard pages just
- * does nothing for non-admins (no console errors, no bubble, no leaked code).
- *
- * The /api/chatbot/ask endpoint uses the strict requireAdmin middleware below,
- * so even a hand-crafted request from a non-admin gets a hard 403.
- */
 function silentAdminGate(isAdmin) {
   return (req, res, next) => {
-    if (!req.session?.account) return next(); // requireAuth ahead handles this
+    if (!req.session?.account) return next();
     if (isAdmin(req.session.account)) return next();
     res.setHeader('Cache-Control', 'no-store');
     const p = (req.path || '').toLowerCase();
-    if (p.endsWith('.js')) return res.type('text/javascript').status(200).send('// chatbot: admin-only â€” disabled for this user\n');
-    if (p.endsWith('.css')) return res.type('text/css').status(200).send('/* chatbot: admin-only â€” disabled for this user */\n');
+    if (p.endsWith('.js')) return res.type('text/javascript').status(200).send('// chatbot: admin-only — disabled for this user\n');
+    if (p.endsWith('.css')) return res.type('text/css').status(200).send('/* chatbot: admin-only — disabled for this user */\n');
     return res.status(403).send('Forbidden');
   };
 }
 
-/**
- * Mount the chatbot routes onto an Express app.
- *
- * @param {import('express').Express} app
- * @param {{
- *   requireAuth: import('express').RequestHandler,
- *   requireAdmin?: import('express').RequestHandler,
- *   isAdmin?: (account: { username?: string, name?: string }) => boolean,
- *   openRouterFetch: (body: any, key: string, referer?: string) => Promise<{status: number, data: any}>,
- *   skipWarmup?: boolean,
- * }} deps
- */
 function register(app, deps) {
   if (!app) throw new Error('register: app is required');
   if (!deps?.requireAuth) throw new Error('register: deps.requireAuth is required');
@@ -237,22 +192,14 @@ function register(app, deps) {
   const apiAdminGate = requireAdmin || passThrough;
   const staticAdminGate = typeof isAdmin === 'function' ? silentAdminGate(isAdmin) : passThrough;
 
-  // Per-user rate limits â€” defence-in-depth against runaway clients / abuse.
-  // /ask is intentionally tight (agent loops can be expensive); feedback +
-  // edit allow rapid clicks but cap obvious automation.
   const askLimiter = tokenBucket({ key: 'ask', capacity: 12, windowMs: 60_000 });
   const feedbackLimiter = tokenBucket({ key: 'fb', capacity: 60, windowMs: 60_000 });
   const answerLimiter = tokenBucket({ key: 'edit', capacity: 60, windowMs: 60_000 });
   const healthzLimiter = tokenBucket({ key: 'hz', capacity: 30, windowMs: 60_000 });
   startCleanup();
 
-  // Static widget assets (auth + silent admin gate).
   app.use('/chatbot/ui', requireAuth, staticAdminGate, express.static(path.join(__dirname, 'ui')));
 
-  // Health / observability endpoint (auth + strict admin gate). Returns
-  // embedder readiness, index size, qa stats, watcher state, healer state,
-  // tool-cache stats, rate-limit table size. One-stop "is the chatbot OK?"
-  // endpoint for ops + debugging "0 chunks retrieved" mysteries.
   app.get('/api/chatbot/healthz', requireAuth, apiAdminGate, healthzLimiter, (req, res) => {
     try {
       const payload = buildHealthzPayload();
@@ -264,12 +211,8 @@ function register(app, deps) {
     }
   });
 
-  // Agent endpoint (auth + strict admin gate + rate limit).
   app.post('/api/chatbot/ask', requireAuth, apiAdminGate, askLimiter, makeAskHandler({ openRouterFetch }));
 
-  // Feedback endpoint: persist the user's thumbs vote on a previously logged
-  // QA row. Mounted with a local express.json() so the chatbot module doesn't
-  // depend on any specific body-parser config in the host server.
   app.post('/api/chatbot/feedback', requireAuth, apiAdminGate, feedbackLimiter, express.json({ limit: '8kb' }), async (req, res) => {
     const { id, helpful } = req.body || {};
     const by = req.session?.account?.username || '';
@@ -290,8 +233,6 @@ function register(app, deps) {
     }
   });
 
-  // Edit endpoint: replace a logged QA row's answer with a user-corrected
-  // version, re-embed, and surface as new ground truth for future retrievals.
   app.patch('/api/chatbot/answer', requireAuth, apiAdminGate, answerLimiter, express.json({ limit: '32kb' }), async (req, res) => {
     const { id, answer } = req.body || {};
     const by = req.session?.account?.username || '';

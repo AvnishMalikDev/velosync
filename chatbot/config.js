@@ -29,6 +29,11 @@ module.exports = {
     testrailUsers:     path.join(ROOT, 'output', 'testrail-users.json'),
     projectsConfig:    path.join(ROOT, 'jira-md-export', 'projects.json'),
     jiraEnv: JIRA_ENV_PATH,
+    // SQLite store (better-sqlite3) ù canonical home for the docs vector index,
+    // qa-history, and user-memory. Replaces the old docs.index.json (re-parsed
+    // on every query) + the two JSONL files. The three paths below are retained
+    // ONLY so db.js can do a one-time import of pre-existing data into SQLite.
+    db: path.join(__dirname, 'data', 'chatbot.db'),
     docsIndex: path.join(__dirname, 'data', 'docs.index.json'),
     qaHistory: path.join(__dirname, 'data', 'qa-history.jsonl'),
     userMemory: path.join(__dirname, 'data', 'user-memory.jsonl'),
@@ -59,11 +64,20 @@ module.exports = {
   },
   agent: {
     maxIters: parseInt(process.env.CHATBOT_MAX_ITERS, 10) || 6,
-    temperature: 0.2,
+    // 0.1 (was 0.2) ù tighter sampling makes tool-call args more deterministic
+    // and reduces stylistic drift between turns. Follow-up generator below
+    // stays at 0.5 because it benefits from a bit of variety.
+    temperature: 0.1,
     followupModel: process.env.CHATBOT_FOLLOWUP_MODEL || '',
     followupCount: 3,
     // Compress history into a summary when conversation exceeds this many turns.
     historyCompressTurns: parseInt(process.env.CHATBOT_HISTORY_COMPRESS_TURNS, 10) || 8,
+    // Hard completion-token budgets fed to OpenRouter as `max_tokens`.
+    // pickAnswerBudget() in agent.js picks `verbose` for "full report" /
+    // "deep dive" / "everything about" style asks; everything else uses default.
+    // Override via env if a tenant needs longer/shorter answers.
+    maxTokensDefault: parseInt(process.env.CHATBOT_MAX_TOKENS, 10) || 1200,
+    maxTokensVerbose: parseInt(process.env.CHATBOT_MAX_TOKENS_VERBOSE, 10) || 3000,
   },
   features: {
     // Contextual retrieval: prepend document context to each chunk before embedding.

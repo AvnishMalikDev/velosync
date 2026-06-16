@@ -10,47 +10,73 @@
  * "What I know about you" block.  This gives the model persistent context
  * across sessions without needing a vector DB or external service.
  *
- * Storage: JSONL append-only file (same pattern as qa-history.jsonl).
+ * Storage: SQLite `user_memory` table (see embeddings/db.js).
  * Format:  { email, fact, at }
  *
  * Privacy: facts are scoped by email — each user only ever sees their own.
  */
-const fs = require('fs');
-const path = require('path');
 const config = require('../config');
+const db = require('./db');
 
 // ──────────────────────────────────────────────────────────────────────────────
-// JSONL read/write helpers
+// Read/write helpers
 // ──────────────────────────────────────────────────────────────────────────────
 
 function normEmail(v) {
   return String(v || '').trim().toLowerCase();
 }
 
+/** All facts for a user, oldest-first (matches the previous append order). */
 function readAllMemories(userEmail) {
-  const p = config.paths.userMemory;
-  if (!fs.existsSync(p)) return [];
-  let raw;
-  try { raw = fs.readFileSync(p, 'utf8'); } catch (_) { return []; }
   const email = normEmail(userEmail);
-  const out = [];
-  for (const line of raw.split(/\r?\n/).filter(Boolean)) {
-    try {
-      const row = JSON.parse(line);
-      if (row && row.email && normEmail(row.email) === email && typeof row.fact === 'string') {
-        out.push(row);
-      }
-    } catch (_) { /* skip malformed */ }
+  if (!email) return [];
+  return db.getMemoriesByEmail(email).filter(r => r && typeof r.fact === 'string');
+}
+
+// Cap on retained memory rows per user. Older rows beyond the cap are
+// dropped during compaction (see _compactIfOverCap below). A bounded cap
+// keeps the JSONL file from growing unbounded across months of use, and
+// matches the "newest is most relevant" assumption already baked into
+// getUserMemories().
+const MAX_ROWS_PER_USER = 50;
+
+/** Normalise a fact for duplicate detection: lowercase, collapse internal
+ *  whitespace, strip surrounding/trailing punctuation. Two facts that
+ *  normalise to the same string are treated as duplicates. */
+function _normFact(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s.,;:!?'"`)\]}-]+|[\s.,;:!?'"`)\]}-]+$/g, '')
+    .trim();
+}
+
+/** Keep only this user's newest MAX_ROWS_PER_USER rows. Best-effort. */
+function _compactIfOverCap(userEmail) {
+  const email = normEmail(userEmail);
+  if (!email) return;
+  try {
+    db.pruneMemoryBeyondCap(email, MAX_ROWS_PER_USER);
+  } catch (err) {
+    console.warn('[chatbot memory] compaction failed:', err.message || err);
   }
-  return out;
 }
 
 function appendMemory(entry) {
-  const p = config.paths.userMemory;
-  const dir = path.dirname(p);
   try {
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.appendFileSync(p, JSON.stringify(entry) + '\n', 'utf8');
+    // Skip exact-duplicate facts for the same user. Normalised matching
+    // catches casing / punctuation drift so the same fact ("Owns Project X")
+    // doesn't accumulate rows across conversations.
+    const normNew = _normFact(entry.fact);
+    if (normNew && entry.email) {
+      const existing = readAllMemories(entry.email);
+      if (existing.some(r => _normFact(r.fact) === normNew)) {
+        return;
+      }
+    }
+
+    db.insertMemory({ email: entry.email, fact: entry.fact, at: entry.at });
+    _compactIfOverCap(entry.email);
   } catch (err) {
     console.warn('[chatbot memory] append failed:', err.message || err);
   }

@@ -2,60 +2,17 @@
  * Conversation memory: append-only Q+A log with embeddings, plus mutating
  * operations for the explicit feedback loop (thumbs + edit).
  *
- * Layout: `data/qa-history.jsonl` — one JSON row per turn.
- * Row shape:
- *   {
- *     id,        // stable id surfaced to the widget
- *     q, a,      // question + (possibly edited) answer
- *     vec,       // embedding of `q\n${a}` — recomputed on edit
- *     by,        // owning user's email
- *     model, at, // model used + ISO timestamp
- *     helpful,   // null | true | false (set by /api/chatbot/feedback)
- *     helpfulAt, // ISO when feedback was last set
- *     editedAt,  // ISO of last edit (if any)
- *     editedBy,  // who edited (must equal `by`)
- *   }
+ * Backed by the SQLite `qa_history` table (see embeddings/db.js). Row shape:
+ *   { id, q, a, vec, by, model, at, helpful, helpfulAt, editedAt, editedBy }
  *
- * Append is fire-and-forget from the caller's perspective. Rewrites
- * (setHelpful / editAnswer) go through a tiny in-process serial queue
- * so two concurrent feedback clicks don't clobber each other's rewrite.
+ * Why SQLite: the old JSONL store was rewritten in full on every feedback /
+ * edit (read-all ? splice ? atomic write) and re-parsed on every retrieval.
+ * Here, append is a single INSERT and feedback/edit are atomic UPDATE ... WHERE
+ * id=? statements — no whole-file rewrite, no in-process serial queue needed.
  */
-const fs = require('fs');
-const fsp = fs.promises;
-const path = require('path');
 const config = require('../config');
+const db = require('./db');
 const { getEmbedder } = require('./indexer');
-
-function ensureDir() {
-  const dir = path.dirname(config.paths.qaHistory);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-}
-
-/**
- * Rotate qa-history.jsonl when it exceeds `rotateAtLines`. Keeps the last
- * `rotateAtLines` rows in place; older rows go to a `.bak` archive that
- * search.js does not read.
- */
-async function rotateIfNeeded() {
-  const p = config.paths.qaHistory;
-  if (!fs.existsSync(p)) return;
-  let raw;
-  try { raw = await fsp.readFile(p, 'utf8'); } catch (_) { return; }
-  const lines = raw.split(/\r?\n/).filter(Boolean);
-  const limit = config.qaLog.rotateAtLines;
-  if (lines.length <= limit) return;
-
-  const keep = lines.slice(lines.length - limit);
-  const archive = lines.slice(0, lines.length - limit);
-  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const bak = path.join(path.dirname(p), `qa-history-${stamp}.jsonl.bak`);
-  try {
-    await fsp.appendFile(bak, archive.join('\n') + '\n', 'utf8');
-    await atomicWriteText(p, keep.join('\n') + '\n');
-  } catch (err) {
-    console.error('[chatbot qaLog] rotation failed:', err.message || err);
-  }
-}
 
 function makeId() {
   return `q-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -63,50 +20,16 @@ function makeId() {
 
 /**
  * Public synchronous ID minter so callers (agent.js) can surface the QA id
- * to the client BEFORE the embedding+file-write actually completes — the
- * widget can then enable thumbs/edit immediately. The async logQA below
- * will use the same id when it eventually writes the row.
+ * to the client BEFORE the embedding+write actually completes — the widget
+ * can then enable thumbs/edit immediately. logQA below uses the same id when
+ * it eventually writes the row.
  */
 function makeQaId() { return makeId(); }
 
-async function atomicWriteText(filePath, text) {
-  const tmp = `${filePath}.tmp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  await fsp.writeFile(tmp, text, 'utf8');
-  await fsp.rename(tmp, filePath);
-}
-
 /**
- * Tiny in-process serial mutator. Multiple calls await the previous one's
- * full JSONL read-modify-write before starting their own. Sufficient because
- * we only have one Node process serving this module.
- */
-let mutateQueue = Promise.resolve();
-function serialMutate(fn) {
-  const next = mutateQueue.then(fn, fn);
-  mutateQueue = next.catch(() => { /* keep chain alive */ });
-  return next;
-}
-
-async function readAllRows() {
-  const p = config.paths.qaHistory;
-  if (!fs.existsSync(p)) return { lines: [], rows: [] };
-  const raw = await fsp.readFile(p, 'utf8');
-  const lines = raw.split(/\r?\n/);
-  const rows = lines.map((line) => {
-    if (!line) return null;
-    try { return JSON.parse(line); } catch (_) { return null; }
-  });
-  return { lines, rows };
-}
-
-function rowsToJsonl(rows) {
-  return rows.filter(Boolean).map(r => JSON.stringify(r)).join('\n') + '\n';
-}
-
-/**
- * Embed Q+A and append one JSONL row. Returns the row's id on success, or
- * null if anything fails (errors are logged but never thrown — fire-and-forget
- * from the caller's perspective).
+ * Embed Q+A and insert one row. Returns the row's id on success, or null if
+ * anything fails (errors are logged but never thrown — fire-and-forget from
+ * the caller's perspective).
  *
  * If `entry.id` is supplied, that exact id is used — letting the agent
  * pre-generate a synchronous id with `makeQaId()` and surface it to the
@@ -122,10 +45,9 @@ async function logQA(entry) {
   const id = entry.id || makeId();
 
   // Try to embed, but treat embedder failure as soft — we still write the
-  // row so feedback/edit endpoints can act on it. The row just won't be
-  // retrievable as `prior_answer` until vec is repopulated. This keeps
-  // the chatbot fully usable even when the model can't be downloaded
-  // (corp-proxy / TLS blocked / offline environment).
+  // row (vec=null) so feedback/edit endpoints can act on it. The vecHealer
+  // backfills the embedding later. Keeps the chatbot usable when the model
+  // can't be loaded (corp-proxy / TLS blocked / offline environment).
   let vec = null;
   try {
     const embed = await getEmbedder();
@@ -136,19 +58,18 @@ async function logQA(entry) {
   }
 
   try {
-    ensureDir();
-    const row = {
+    db.insertQa({
       id,
       q,
       a,
       vec,
-      by: entry.by || '',
+      by: (entry.by || '').trim().toLowerCase(),
       model: entry.model || '',
       at: new Date().toISOString(),
       helpful: null,
-    };
-    await fsp.appendFile(config.paths.qaHistory, JSON.stringify(row) + '\n', 'utf8');
-    rotateIfNeeded().catch(() => { /* ignore */ });
+    });
+    // Bounded history: drop oldest rows beyond the cap (replaces JSONL rotation).
+    try { db.pruneQaBeyond(config.qaLog.rotateAtLines); } catch (_) { /* best-effort */ }
     return id;
   } catch (err) {
     console.error('[chatbot qaLog] write failed:', err.message || err);
@@ -173,27 +94,16 @@ async function setHelpful(id, helpful, by) {
   if (!owner) return { ok: false, error: 'unauthenticated' };
   const value = (helpful === true || helpful === false) ? helpful : null;
 
-  return serialMutate(async () => {
-    // The agent emits qaId to the widget synchronously, then fires the
-    // embed+append in the background. So a thumbs click can race the
-    // append. Retry briefly so we don't 404 in the typical case.
-    let row = null;
-    let rows = null;
-    let idx = -1;
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      ({ rows } = await readAllRows());
-      idx = rows.findIndex(r => r && r.id === id);
-      if (idx !== -1) { row = rows[idx]; break; }
-      await new Promise(r => setTimeout(r, 250));
-    }
-    if (!row) return { ok: false, error: 'not_found' };
-    if (String(row.by || '').trim().toLowerCase() !== owner) {
-      return { ok: false, error: 'forbidden' };
-    }
-    rows[idx] = { ...row, helpful: value, helpfulAt: new Date().toISOString() };
-    await atomicWriteText(config.paths.qaHistory, rowsToJsonl(rows));
-    return { ok: true };
-  });
+  // The agent emits qaId to the widget synchronously, then fires the
+  // embed+insert in the background — so a thumbs click can race the insert.
+  // Retry briefly so we don't 404 in the typical case.
+  const row = await findRowWithRetry(id);
+  if (!row) return { ok: false, error: 'not_found' };
+  if (String(row.by || '').trim().toLowerCase() !== owner) {
+    return { ok: false, error: 'forbidden' };
+  }
+  db.updateQaHelpful(id, value, new Date().toISOString());
+  return { ok: true };
 }
 
 /**
@@ -212,46 +122,36 @@ async function editAnswer(id, newAnswer, by) {
   const owner = String(by || '').trim().toLowerCase();
   if (!owner) return { ok: false, error: 'unauthenticated' };
 
-  return serialMutate(async () => {
-    // Same race as setHelpful — retry briefly while logQA's background
-    // append might still be in flight.
-    let row = null;
-    let rows = null;
-    let idx = -1;
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      ({ rows } = await readAllRows());
-      idx = rows.findIndex(r => r && r.id === id);
-      if (idx !== -1) { row = rows[idx]; break; }
-      await new Promise(r => setTimeout(r, 250));
-    }
-    if (!row) return { ok: false, error: 'not_found' };
-    if (String(row.by || '').trim().toLowerCase() !== owner) {
-      return { ok: false, error: 'forbidden' };
-    }
+  const row = await findRowWithRetry(id);
+  if (!row) return { ok: false, error: 'not_found' };
+  if (String(row.by || '').trim().toLowerCase() !== owner) {
+    return { ok: false, error: 'forbidden' };
+  }
 
-    // Best-effort re-embed. If the model is offline (corp-proxy / TLS
-    // blocked) we still accept the edit — the row keeps its previous vec
-    // (or null), and the user-visible answer text is updated. Without
-    // this, the edit endpoint would 400 every time on offline hosts.
-    let finalVec = row.vec || null;
-    try {
-      const embed = await getEmbedder();
-      const v = await embed(`${row.q}\n${text}`);
-      if (Array.isArray(v) && v.length === config.model.embeddingDim) finalVec = v;
-    } catch (err) {
-      console.warn('[chatbot qaLog] re-embed on edit unavailable:', err.message || err);
-    }
+  // Best-effort re-embed. If the model is offline we still accept the edit —
+  // the row keeps its previous vec, and vecHealer can re-embed later.
+  let finalVec = row.vec || null;
+  try {
+    const embed = await getEmbedder();
+    const v = await embed(`${row.q}\n${text}`);
+    if (Array.isArray(v) && v.length === config.model.embeddingDim) finalVec = v;
+  } catch (err) {
+    console.warn('[chatbot qaLog] re-embed on edit unavailable:', err.message || err);
+  }
 
-    rows[idx] = {
-      ...row,
-      a: text,
-      vec: finalVec,
-      editedAt: new Date().toISOString(),
-      editedBy: owner,
-    };
-    await atomicWriteText(config.paths.qaHistory, rowsToJsonl(rows));
-    return { ok: true };
-  });
+  db.updateQaAnswer(id, text, finalVec, new Date().toISOString(), owner);
+  return { ok: true };
+}
+
+/** Look up a row, retrying briefly while logQA's background insert may still
+ *  be in flight (same race the old JSONL retry loop handled). */
+async function findRowWithRetry(id) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const row = db.getQaById(id);
+    if (row) return row;
+    await new Promise(r => setTimeout(r, 250));
+  }
+  return null;
 }
 
 module.exports = { logQA, setHelpful, editAnswer, makeQaId };
